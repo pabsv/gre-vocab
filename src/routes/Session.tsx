@@ -5,11 +5,14 @@ import { sessionProgress, type Session as SessionState } from '../core/engine'
 import { getEntry } from '../data/words'
 import { useHotkeys } from '../lib/hotkeys'
 import { speak } from '../lib/speech'
+import { useSessionLock } from '../lib/useSessionLock'
 import { useWakeLock } from '../lib/useWakeLock'
 import { useStore } from '../state/store'
+import { Button } from '../ui/Button'
 import { ShortcutSheet } from '../ui/ShortcutSheet'
 import { Checkpoint } from './session/Checkpoint'
 import { Done } from './session/Done'
+import { Card, TaskLabel } from './session/parts'
 import { ExplainTask } from './session/ExplainTask'
 import { FlashTask } from './session/FlashTask'
 import { McqTask } from './session/McqTask'
@@ -23,18 +26,31 @@ export function SessionRoute() {
   const [sheet, setSheet] = useState(false)
   useWakeLock(!!session)
 
+  const lock = useSessionLock(!!session)
   const task = feedback?.task ?? session?.cur ?? null
-  useHotkeys({
-    Escape: () => (sheet ? setSheet(false) : navigate('/')),
-    'Mod+KeyZ': undo,
-    KeyP: () => task && speak(getEntry(task.id).word),
-    'Shift+Slash': () => setSheet((v) => !v),
-  })
+  useHotkeys(
+    {
+      Escape: () => (sheet ? setSheet(false) : navigate('/')),
+      'Mod+KeyZ': () => !lock.blocked && undo(),
+      KeyP: () => task && speak(getEntry(task.id).word),
+      'Shift+Slash': () => setSheet((v) => !v),
+    },
+  )
 
   if (!session) return <Navigate to="/" replace />
 
   let body: React.ReactNode = null
-  if (session.phase === 'checkpoint') body = <Checkpoint />
+  if (lock.blocked)
+    body = (
+      <Card>
+        <TaskLabel tone="warn">open in another tab</TaskLabel>
+        <p className="text-lg text-ink-2">This session is running in another tab or window. Studying in two places at once would log answers twice.</p>
+        <Button variant="primary" className="mt-6" onClick={lock.takeOver}>
+          Continue here instead
+        </Button>
+      </Card>
+    )
+  else if (session.phase === 'checkpoint') body = <Checkpoint />
   else if (session.phase === 'done') body = <Done session={session} />
   else if (task) {
     const fb = feedback && feedback.task.seq === task.seq ? feedback : null

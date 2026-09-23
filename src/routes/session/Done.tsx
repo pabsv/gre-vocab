@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import type { Session } from '../../core/engine'
 import { forecast } from '../../core/stats'
@@ -5,6 +6,7 @@ import { getEntry } from '../../data/words'
 import { now } from '../../lib/clock'
 import { useHotkeys } from '../../lib/hotkeys'
 import { useStore } from '../../state/store'
+import { syncNow } from '../../sync/sync'
 import { Button } from '../../ui/Button'
 import { Card, TaskLabel } from './parts'
 
@@ -25,6 +27,9 @@ export function Done({ session }: { session: Session }) {
     navigate('/')
   }
   useHotkeys({ Enter: finish, Escape: finish })
+  useEffect(() => {
+    void syncNow()
+  }, [])
 
   const accuracy = session.answered ? Math.round((session.correct / session.answered) * 100) : 0
   const reviews = session.pool.filter((x) => x.phase === 'review').length

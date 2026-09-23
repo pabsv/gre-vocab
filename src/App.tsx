@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { watchSystemTheme } from './lib/theme'
+import { startSync } from './sync/sync'
 import { Layout } from './routes/Layout'
 import { MistakesRoute } from './routes/Mistakes'
 import { SessionRoute } from './routes/Session'
@@ -33,6 +34,8 @@ export default function App() {
     init().catch((err) => useStore.setState({ error: String(err), ready: true }))
     return watchSystemTheme(() => useStore.getState().settings.theme)
   }, [init])
+
+  useEffect(() => (ready ? startSync() : undefined), [ready])
 
   if (!ready) {
     return (

@@ -277,11 +277,13 @@ export const useStore = create<State>()((set, get) => {
     },
 
     reload: async () => {
+      const prev = get().settings
       const loaded = await repo.loadState()
       const settings: Settings = { ...DEFAULT_SETTINGS, ...((loaded.meta.get('settings') as Partial<Settings> | undefined) ?? {}) }
-      const themeChanged = settings.theme !== get().settings.theme
-      set({ progress: loaded.progress, meta: loaded.meta, settings })
-      if (themeChanged) applyTheme(settings.theme)
+      // Target recall changed on another device: every schedule has to be re-derived.
+      const progress = settings.retention !== prev.retention ? await repo.rebuildAll(schedulerFor(settings.retention)) : loaded.progress
+      set({ progress, meta: loaded.meta, settings })
+      if (settings.theme !== prev.theme) applyTheme(settings.theme)
     },
 
     applyProgress: (list) => {
