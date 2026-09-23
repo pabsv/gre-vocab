@@ -9,6 +9,7 @@ dist-ssr
 dev-dist
 *.local
 .env
+.env*.local
 .vercel
 graphify-out/
 __pycache__/
