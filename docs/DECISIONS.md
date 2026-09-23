@@ -31,7 +31,7 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
 * Typed answers: inflections accepted; a near miss counts as a typo only when it is closer to the target than to every other deck word; typing another deck word is a confusion; typing a same-meaning deck word is a free retry. Shared definitions show the first letter up front.
 * Mistake weight per word (+1 per miss, half life 14 days, times 0.6 on a clean hit) plus recorded confusion pairs drive the Mistakes page, drills and distractor choice. Drills skip words due today so cramming does not inflate the next review, and they never touch the schedule.
 * FSRS (ts-fsrs 5.4.2): target recall 90%, maximum interval 120 days, fuzz on, short-term steps off (the session engine handles same-day repetition). New-card first intervals: Again 1, Hard 2, Good 3, Easy 8 days.
-* Pace: 40 new words a day with a 60 minute budget; new words shrink automatically when reviews pile up (10 s per review, 50 s per new word). Measured estimate: about 55 minutes a day at 40 new words once reviews peak.
+* Pace: 30 new words a day by default with a 60 minute budget; new words shrink automatically when reviews pile up (10 s per review, 50 s per new word). Today has a stepper (← →) that sets the exact number of new words for one session, overriding target and budget. Measured estimate: about 40 minutes a day at 30 new words once reviews peak.
 * New-word order is a seeded shuffle per tier, interleaved in proportion to tier size (all three sections finish together), senses adjacent, look-alike headwords at least 60 entries apart so they land on different days. Deterministic, so devices agree without syncing it.
 
 ## Storage and sync
@@ -46,3 +46,7 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
 * Dictionary-desk look: headwords in Source Serif 4 with superscript sense numbers, UI in Schibsted Grotesk (the plan said Inter; swapped for more character), a highlighter mark on the word inside example sentences, warm paper light theme and ink dark theme.
 * One blue carries both accent and charts. Mastery uses an ordinal blue ramp, the heatmap a sequential blue, two-series charts blue and orange; all validated for both themes. Green, red and amber are reserved for answer feedback.
 * Keyboard first (keys matched by `e.code`), swipe and large targets on phones, inputs with autocorrect and capitalisation off.
+* Self grading reads left to right: Knew it / Right is 1 and ←, Didn't know / Wrong is 2 and →, on both the flashcard and the sweep. M toggles auto pronounce. Space continues after any miss.
+* No instructional copy or task labels on study cards (user feedback 2026-09-23): the header already says which phase you are in, and extra sentences slow reading.
+* A typed miss shows the correct word large and your attempt small, grey and struck through, so the wrong spelling is not the first thing you see.
+* Study screens must fit one laptop screen without scrolling (checked at 1536x730 against the longest entries).

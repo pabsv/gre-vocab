@@ -163,6 +163,15 @@ describe('engine: reviews', () => {
     const tight = buildPlan({ progress, order: ORDER, settings: { newPerDay: 40, budgetMin: 10 }, now: T0, suspended: new Set() })
     expect(tight.newIds.length).toBeLessThanOrEqual(14)
   })
+
+  it('honours an explicit session size over target and budget', () => {
+    const progress = new Map<string, Progress>()
+    const settings = { newPerDay: 30, budgetMin: 10 }
+    const more = buildPlan({ progress, order: ORDER, settings, now: T0, suspended: new Set(), newCount: 45 })
+    expect(more.newIds.length).toBeGreaterThanOrEqual(45)
+    expect(more.newIds.length).toBeLessThanOrEqual(48)
+    expect(buildPlan({ progress, order: ORDER, settings, now: T0, suspended: new Set(), newCount: 0 }).newIds).toEqual([])
+  })
 })
 
 describe('engine: undo and list sessions', () => {

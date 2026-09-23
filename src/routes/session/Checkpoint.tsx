@@ -15,14 +15,10 @@ export function Checkpoint() {
   const words = session.recap.map(getEntry)
   return (
     <Card>
-      <TaskLabel tone="accent">checkpoint · {learned} learned so far</TaskLabel>
-      <h2 className="font-display text-[clamp(1.9rem,5vw,2.6rem)] font-semibold leading-tight">
-        {words.length} {words.length === 1 ? 'word' : 'words'} in the bag
-      </h2>
-      <p className="mt-2 text-ink-2">Read them once more before the next batch.</p>
-      <ul className="mt-7 divide-y divide-line">
+      <TaskLabel tone="accent">{learned} learned</TaskLabel>
+      <ul className="divide-y divide-line">
         {words.map((e) => (
-          <li key={e.id} className="flex items-baseline gap-4 py-3">
+          <li key={e.id} className="flex items-baseline gap-4 py-2.5">
             <span className="w-40 shrink-0 font-display text-xl font-semibold text-ink">
               {e.word}
               {e.senses > 1 && <sup className="ml-0.5 text-[0.55em] font-normal text-ink-3">{e.sense}</sup>}
@@ -32,7 +28,7 @@ export function Checkpoint() {
           </li>
         ))}
       </ul>
-      <Button variant="primary" size="lg" keys={['Enter']} onClick={next} className="mt-8">
+      <Button variant="primary" size="lg" keys={['Enter']} onClick={next} className="mt-6">
         Continue
       </Button>
     </Card>

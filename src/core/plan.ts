@@ -30,8 +30,10 @@ export function buildPlan(args: {
   settings: Pick<Settings, 'newPerDay' | 'budgetMin'>
   now: number
   suspended: ReadonlySet<string>
+  /** Exact number of fresh words for this session; overrides the daily target and the budget. */
+  newCount?: number
 }): DailyPlan {
-  const { progress, order, settings, now, suspended } = args
+  const { progress, order, settings, now, suspended, newCount } = args
   const day = studyDay(now)
   const due: Progress[] = []
   const carryIds: string[] = []
@@ -52,7 +54,7 @@ export function buildPlan(args: {
 
   const seconds = settings.budgetMin * 60 - dueIds.length * SEC_PER_REVIEW - carryIds.length * SEC_PER_NEW
   const fit = Math.max(0, Math.floor(seconds / SEC_PER_NEW))
-  const allowed = Math.max(0, Math.min(settings.newPerDay - startedToday - carriedIn, fit))
+  const allowed = newCount ?? Math.max(0, Math.min(settings.newPerDay - startedToday - carriedIn, fit))
 
   const newIds: string[] = []
   const fresh = (id: string) => !suspended.has(id) && !progress.get(id)?.firstDay && !progress.get(id)?.card

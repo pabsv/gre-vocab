@@ -4,15 +4,25 @@ import { useStore } from '../state/store'
 import { Example } from './Example'
 
 /** The answer side: definition, example, note, related words and your memory hook. */
-export function Meaning({ entry, compact = false, showOtherSenses = true }: { entry: Entry; compact?: boolean; showOtherSenses?: boolean }) {
+export function Meaning({
+  entry,
+  compact = false,
+  showOtherSenses = true,
+  showDef = true,
+}: {
+  entry: Entry
+  compact?: boolean
+  showOtherSenses?: boolean
+  showDef?: boolean
+}) {
   const hook = useStore((s) => s.meta.get(`note:${entry.id}`)) as string | undefined
   const syn = (entry.syn ?? []).map(getEntry)
   const look = dedupe(lookalikesOf(entry.id))
   const others = showOtherSenses ? (BY_WORD.get(entry.word.toLowerCase()) ?? []).filter((e) => e.id !== entry.id) : []
   const hasExtras = !!entry.note || syn.length > 0 || look.length > 0 || others.length > 0
   return (
-    <div className="flex flex-col gap-4">
-      <p className={`font-display leading-snug text-ink ${compact ? 'text-xl' : 'text-[clamp(1.3rem,3.4vw,1.65rem)]'}`}>{entry.def}</p>
+    <div className="flex flex-col gap-3">
+      {showDef && <p className={`font-display leading-snug text-ink ${compact ? 'text-xl' : 'text-[clamp(1.3rem,3.4vw,1.6rem)]'}`}>{entry.def}</p>}
       <Example entry={entry} className={`leading-relaxed text-ink-2 ${compact ? 'text-base' : 'text-lg'}`} />
       {hook && (
         <p className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-2.5 text-[0.95rem] text-ink">
@@ -21,7 +31,7 @@ export function Meaning({ entry, compact = false, showOtherSenses = true }: { en
         </p>
       )}
       {!compact && hasExtras && (
-        <dl className="grid gap-2 border-t border-line pt-3 text-[0.9rem] text-ink-2">
+        <dl className="grid gap-1.5 border-t border-line pt-3 text-[0.9rem] text-ink-2">
           {entry.note && <dd className="text-ink-3">{entry.note}</dd>}
           {others.length > 0 && (
             <Row label="other meanings">

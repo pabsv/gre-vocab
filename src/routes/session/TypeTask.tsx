@@ -9,9 +9,8 @@ import { useStore, type Feedback } from '../../state/store'
 import { Button } from '../../ui/Button'
 import { Example } from '../../ui/Example'
 import { Headword } from '../../ui/Headword'
-import { Kbd } from '../../ui/Kbd'
 import { Meaning } from '../../ui/Meaning'
-import { Card, TaskLabel } from './parts'
+import { Card } from './parts'
 
 const INPUT_PROPS = {
   autoComplete: 'off',
@@ -51,7 +50,7 @@ export function TypeTask({ task, feedback }: { task: Task; feedback: Feedback | 
         setShakeKey((k) => k + 1)
         return
       case 'synonym':
-        setNote(`${getEntry(v.entryId).word} also means that. The word we want is a different one.`)
+        setNote(`${getEntry(v.entryId).word} also means that; another word wanted`)
         inputRef.current?.select()
         return
       case 'correct':
@@ -94,7 +93,7 @@ export function TypeTask({ task, feedback }: { task: Task; feedback: Feedback | 
   useHotkeys(
     {
       Enter: next,
-      Space: () => answered?.correct && proceed(),
+      Space: next,
       'Mod+Enter': () => wrong && override(),
       KeyO: () => wrong && override(),
     },
@@ -102,7 +101,8 @@ export function TypeTask({ task, feedback }: { task: Task; feedback: Feedback | 
   )
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+    // Headwords never contain spaces, so once answered Space means continue.
+    if ((e.key === 'Enter' || (e.key === ' ' && answered)) && !e.ctrlKey && !e.metaKey) {
       e.preventDefault()
       e.stopPropagation()
       if (answered) next()
@@ -118,9 +118,8 @@ export function TypeTask({ task, feedback }: { task: Task; feedback: Feedback | 
 
   return (
     <Card>
-      <TaskLabel tone={isTest ? 'warn' : 'accent'}>{isTest ? 'test' : task.kind === 'relearn' ? 'once more' : 'type the word'}</TaskLabel>
       <div className="flex flex-col gap-2">
-        <p className="font-display text-[clamp(1.45rem,4vw,2rem)] leading-snug text-ink">{entry.defMasked ?? entry.def}</p>
+        <p className="font-display text-[clamp(1.35rem,3.6vw,1.7rem)] leading-snug text-ink">{entry.defMasked ?? entry.def}</p>
         <p className="flex flex-wrap items-center gap-x-3 font-display italic text-ink-3">
           <span>{entry.pos}</span>
           {task.firstLetter && (
@@ -138,23 +137,25 @@ export function TypeTask({ task, feedback }: { task: Task; feedback: Feedback | 
         </div>
       )}
 
-      <div key={shakeKey} className={`mt-7 ${shakeKey ? 'anim-shake' : ''}`}>
-        <input
-          ref={inputRef}
-          {...INPUT_PROPS}
-          autoFocus
-          value={answered?.typed ?? value}
-          readOnly={!!answered}
-          onChange={(e) => {
-            setValue(e.target.value)
-            setNote(null)
-          }}
-          onKeyDown={onKey}
-          placeholder="Type the word"
-          aria-label="Your answer"
-          className={`w-full rounded-2xl border-2 px-5 py-4 font-display text-[1.6rem] text-ink outline-none transition-colors placeholder:text-ink-3/60 ${tone}`}
-        />
-      </div>
+      {!wrong && (
+        <div key={shakeKey} className={`mt-6 ${shakeKey ? 'anim-shake' : ''}`}>
+          <input
+            ref={inputRef}
+            {...INPUT_PROPS}
+            autoFocus
+            value={answered?.typed ?? value}
+            readOnly={!!answered}
+            onChange={(e) => {
+              setValue(e.target.value)
+              setNote(null)
+            }}
+            onKeyDown={onKey}
+            placeholder="Type the word"
+            aria-label="Your answer"
+            className={`w-full rounded-2xl border-2 px-5 py-3.5 font-display text-[1.6rem] text-ink outline-none transition-colors placeholder:text-ink-3/60 ${tone}`}
+          />
+        </div>
+      )}
       {note && <p className="anim-fade mt-3 text-sm text-warn">{note}</p>}
 
       {!answered && (
@@ -170,59 +171,46 @@ export function TypeTask({ task, feedback }: { task: Task; feedback: Feedback | 
         </div>
       )}
 
-      {answered && (
-        <div className="anim-fade mt-7 flex flex-col gap-5 border-t border-line pt-6">
-          {answered.correct ? (
-            <>
-              {verdict?.kind === 'typo' && (
-                <p className="text-sm text-ink-2">
-                  Close enough. Spelled <b className="font-display text-base text-ink">{entry.word}</b>
-                </p>
-              )}
-              <Headword entry={entry} size="md" />
-              <Example entry={entry} className="text-lg leading-relaxed text-ink-2" />
-              <p className="flex items-center gap-2 text-xs text-ink-3">
-                Next card in a moment <Kbd>Enter</Kbd>
-              </p>
-            </>
-          ) : (
-            <>
-              <div>
-                <p className="small-caps text-sm text-ink-3">answer</p>
-                <Headword entry={entry} size="lg" />
-              </div>
-              {verdict?.kind === 'confusion' && (
-                <p className="rounded-xl bg-surface-2 px-4 py-3 text-[0.95rem] text-ink-2">
-                  You wrote <b className="font-display text-ink">{getEntry(verdict.entryId).word}</b>, which means {getEntry(verdict.entryId).def}.
-                </p>
-              )}
-              <Meaning entry={entry} compact showOtherSenses={false} />
-              {needsRetype && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm text-ink-2" htmlFor="retype">
-                    Type it once to lock it in
-                  </label>
-                  <input
-                    id="retype"
-                    ref={retypeRef}
-                    {...INPUT_PROPS}
-                    value={retype}
-                    onChange={(e) => setRetype(e.target.value)}
-                    onKeyDown={onKey}
-                    className={`w-full rounded-xl border-2 bg-surface px-4 py-3 font-display text-xl text-ink outline-none ${retypeOk ? 'border-good' : 'border-line-strong focus:border-accent'}`}
-                  />
-                </div>
-              )}
-              <div className="flex flex-wrap items-center gap-3">
-                <Button variant="primary" keys={['Enter']} onClick={next} disabled={needsRetype && !retypeOk}>
-                  Continue
-                </Button>
-                <Button variant="ghost" keys={['Ctrl', 'Enter']} onClick={override}>
-                  I was right
-                </Button>
-              </div>
-            </>
+      {answered?.correct && (
+        <div className="anim-fade mt-5 flex flex-col gap-3">
+          <Headword entry={entry} size="md" />
+          <Example entry={entry} className="text-lg leading-relaxed text-ink-2" />
+        </div>
+      )}
+
+      {wrong && (
+        <div className="anim-fade mt-6 flex flex-col gap-4">
+          <div>
+            <Headword entry={entry} size="lg" />
+            <p className="mt-1.5 text-sm text-ink-3">
+              <s className="decoration-ink-3/60">{answered.typed}</s>
+              {verdict?.kind === 'confusion' && <> · {getEntry(verdict.entryId).def}</>}
+            </p>
+          </div>
+          <Meaning entry={entry} compact showDef={false} showOtherSenses={false} />
+          {needsRetype && (
+            <div key={shakeKey} className={shakeKey ? 'anim-shake' : ''}>
+              <input
+                ref={retypeRef}
+                {...INPUT_PROPS}
+                autoFocus
+                value={retype}
+                onChange={(e) => setRetype(e.target.value.replace(/\s/g, ''))}
+                onKeyDown={onKey}
+                placeholder="Type it again"
+                aria-label="Type the word again"
+                className={`w-full rounded-xl border-2 bg-surface px-4 py-3 font-display text-xl text-ink outline-none placeholder:text-ink-3/60 ${retypeOk ? 'border-good' : 'border-line-strong focus:border-accent'}`}
+              />
+            </div>
           )}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="primary" keys={['Space']} onClick={next} disabled={needsRetype && !retypeOk}>
+              Continue
+            </Button>
+            <Button variant="ghost" keys={['Ctrl', 'Enter']} onClick={override}>
+              I was right
+            </Button>
+          </div>
         </div>
       )}
     </Card>

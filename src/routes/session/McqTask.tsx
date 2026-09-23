@@ -9,14 +9,7 @@ import { Button } from '../../ui/Button'
 import { Example } from '../../ui/Example'
 import { Headword } from '../../ui/Headword'
 import { Kbd } from '../../ui/Kbd'
-import { Meaning } from '../../ui/Meaning'
-import { Card, TaskLabel } from './parts'
-
-const LABEL: Record<string, string> = {
-  'mcq-w2d': 'pick the meaning',
-  'mcq-d2w': 'pick the word',
-  'mcq-blank': 'which word fits the blank?',
-}
+import { Card } from './parts'
 
 export function McqTask({ task, feedback }: { task: Task; feedback: Feedback | null }) {
   const entry = getEntry(task.id)
@@ -51,30 +44,34 @@ export function McqTask({ task, feedback }: { task: Task; feedback: Feedback | n
 
   return (
     <Card>
-      <TaskLabel tone={task.kind === 'filler' ? 'muted' : 'accent'}>
-        {task.kind === 'filler' ? 'quick look back' : task.kind === 'relearn' ? 'once more' : 'multiple choice'} · {LABEL[task.mode]}
-      </TaskLabel>
-
       {task.mode === 'mcq-w2d' && <Headword entry={entry} size="lg" />}
       {task.mode === 'mcq-d2w' && (
         <div className="flex flex-col gap-2">
-          <p className="font-display text-[clamp(1.45rem,4vw,2rem)] leading-snug text-ink">{entry.def}</p>
+          <p className="font-display text-[clamp(1.35rem,3.6vw,1.7rem)] leading-snug text-ink">{entry.def}</p>
           <p className="font-display italic text-ink-3">{entry.pos}</p>
         </div>
       )}
       {task.mode === 'mcq-blank' && <Example entry={entry} blank className="text-[clamp(1.25rem,3.4vw,1.6rem)] leading-relaxed text-ink" />}
 
-      <ol className="mt-8 grid gap-2.5">
+      <ol className="mt-6 grid gap-2.5">
         {options.map((o, k) => (
-          <Option key={o.id} n={k + 1} option={o} target={entry} byWord={byWord} answered={answered} onPick={() => pick(k)} />
+          <Option
+            key={o.id}
+            n={k + 1}
+            option={o}
+            target={entry}
+            byWord={byWord}
+            explainTarget={task.mode === 'mcq-blank'}
+            answered={answered}
+            onPick={() => pick(k)}
+          />
         ))}
       </ol>
 
       {answered && !answered.correct && (
-        <div className="anim-fade mt-8 flex flex-col gap-6 border-t border-line pt-6">
-          {task.mode !== 'mcq-w2d' && <Headword entry={entry} size="md" />}
-          <Meaning entry={entry} compact />
-          <Button variant="primary" keys={['Enter']} onClick={proceed} className="self-start">
+        <div className="anim-fade mt-5 flex flex-col gap-4">
+          {task.mode !== 'mcq-blank' && entry.ex && <Example entry={entry} className="leading-relaxed text-ink-2" />}
+          <Button variant="primary" keys={['Space']} onClick={proceed} className="self-start">
             Continue
           </Button>
         </div>
@@ -88,6 +85,7 @@ function Option({
   option,
   target,
   byWord,
+  explainTarget,
   answered,
   onPick,
 }: {
@@ -95,6 +93,8 @@ function Option({
   option: Entry
   target: Entry
   byWord: boolean
+  /** After a miss, also show the target's meaning (the prompt did not). */
+  explainTarget: boolean
   answered: Feedback | null
   onPick: () => void
 }) {
@@ -112,7 +112,7 @@ function Option({
         type="button"
         onClick={onPick}
         disabled={!!answered}
-        className={`group flex w-full items-start gap-4 rounded-2xl border px-4 py-3.5 text-left transition-colors ${tone}`}
+        className={`group flex w-full items-start gap-4 rounded-2xl border px-4 py-3 text-left transition-colors ${tone}`}
       >
         <span className="mt-0.5 flex w-6 shrink-0 justify-center">
           {answered && isTarget ? <Check size={18} className="text-good" /> : answered && isPicked ? <X size={18} className="text-bad" /> : <Kbd>{n}</Kbd>}
@@ -123,15 +123,9 @@ function Option({
           ) : (
             <span className="text-[1.02rem] leading-snug text-ink">{option.def}</span>
           )}
-          {answered && isPicked && !isTarget && (
-            <span className="mt-1 block text-sm text-ink-2">
-              {byWord ? (
-                <>means: {option.def}</>
-              ) : (
-                <>
-                  that is <b className="font-display font-semibold">{option.word}</b>
-                </>
-              )}
+          {answered && !answered.correct && (isPicked || (isTarget && explainTarget)) && (
+            <span className="mt-0.5 block text-sm text-ink-2">
+              {byWord ? option.def : <b className="font-display font-semibold">{option.word}</b>}
             </span>
           )}
         </span>

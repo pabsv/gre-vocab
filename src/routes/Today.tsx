@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowRight, Flame, GraduationCap, ListChecks, Target } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowRight, Flame, GraduationCap, ListChecks, Minus, Plus, Target } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { activityByDay, bucketCounts, recallEstimate, streak, troubleList } from '../core/stats'
 import { addDays, daysBetween, parseDay, studyDay } from '../core/time'
@@ -8,6 +8,7 @@ import { ENTRIES } from '../data/words'
 import { db } from '../db/db'
 import { useHotkeys } from '../lib/hotkeys'
 import { useNow } from '../lib/useNow'
+import { SEC_PER_NEW, SEC_PER_REVIEW } from '../core/plan'
 import { schedulerFor, useStore } from '../state/store'
 import { Button } from '../ui/Button'
 import { Heatmap, MasteryBar } from '../ui/charts'
@@ -34,18 +35,20 @@ export function Today() {
   const trouble = useMemo(() => troubleList(progress, t), [progress, t])
 
   const resumable = !!session && session.day === today && session.phase !== 'done'
-  const work = plan.dueIds.length + plan.newIds.length + plan.carryIds.length
+  const fresh = counts.new - plan.carryIds.length
+  const suggested = plan.newIds.length || (plan.dueIds.length + plan.carryIds.length === 0 ? Math.min(10, fresh) : 0)
+  const [picked, setPicked] = useState<number | null>(null)
+  const newCount = Math.min(picked ?? suggested, Math.max(0, fresh))
+  const step = (d: number) => setPicked(Math.max(0, Math.min(Math.max(0, fresh), (picked ?? suggested) + d)))
+  const work = plan.dueIds.length + newCount + plan.carryIds.length
+  const estMinutes = Math.round((plan.dueIds.length * SEC_PER_REVIEW + (plan.carryIds.length + newCount) * SEC_PER_NEW) / 60)
   const todayAct = activity.get(today)
   const streakDays = streak(activity, today)
   const introduced = ENTRIES.length - counts.new
   const firstRun = introduced === 0 && !resumable
 
   const start = () => {
-    if (!resumable) startDaily()
-    navigate('/session')
-  }
-  const more = () => {
-    startDaily(10)
+    if (!resumable) startDaily(newCount)
     navigate('/session')
   }
   const drill = () => {
@@ -68,30 +71,32 @@ export function Today() {
     navigate('/session')
   }
 
-  useHotkeys({ Enter: () => (resumable || work > 0 ? start() : undefined) })
+  const canPick = !resumable && fresh > 0
+  useHotkeys({
+    Enter: () => (resumable || work > 0 ? start() : undefined),
+    ArrowLeft: () => canPick && step(-5),
+    ArrowRight: () => canPick && step(5),
+    Minus: () => canPick && step(-5),
+    Equal: () => canPick && step(5),
+  })
 
   const dateLine = parseDay(today).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
-  const newTotal = plan.newIds.length + plan.carryIds.length
+  const newTotal = newCount + plan.carryIds.length
 
   let headline: string
-  let sub: string
+  let sub: string | null = null
   if (resumable) {
     headline = 'Pick up where you left off'
-    sub = 'Your session is saved after every answer.'
   } else if (firstRun) {
-    headline = `Your first ${plan.newIds.length} words`
-    sub = `About ${plan.estMinutes} minutes. Each word goes flashcard, multiple choice, then you type it; a final sweep asks you to explain each one.`
+    headline = `Your first ${plural(newCount, 'word')}`
   } else if (work > 0) {
     const parts = []
     if (plan.dueIds.length) parts.push(plural(plan.dueIds.length, 'review'))
     if (newTotal) parts.push(plural(newTotal, 'new word'))
     headline = parts.join(' and ')
-    sub = `About ${plan.estMinutes} minutes.${newTotal ? ' New words end with a quick sweep.' : ''}`
   } else {
     headline = 'All caught up'
-    sub = todayAct
-      ? `${plural(todayAct.answers, 'answer')} today, ${Math.round((todayAct.correct / Math.max(1, todayAct.answers)) * 100)}% right. The next reviews appear tomorrow.`
-      : 'Nothing is due right now.'
+    if (todayAct) sub = `${plural(todayAct.answers, 'answer')} today, ${Math.round((todayAct.correct / Math.max(1, todayAct.answers)) * 100)}% right.`
   }
 
   const exam = settings.examDate ? daysBetween(today, settings.examDate) : null
@@ -104,18 +109,12 @@ export function Today() {
         <div>
           <p className="small-caps text-ink-3">{dateLine}</p>
           <h1 className="mt-2 font-display text-[clamp(2.4rem,6.5vw,3.9rem)] font-semibold leading-[1.02] tracking-tight">{headline}</h1>
-          <p className="mt-4 max-w-xl text-lg text-ink-2">{sub}</p>
+          {sub && <p className="mt-4 max-w-xl text-lg text-ink-2">{sub}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {resumable || work > 0 ? (
-            <Button variant="primary" size="lg" keys={['Enter']} icon={<ArrowRight size={19} />} onClick={start}>
-              {resumable ? 'Resume' : 'Start'}
-            </Button>
-          ) : (
-            <Button variant="primary" size="lg" onClick={more}>
-              Learn 10 more
-            </Button>
-          )}
+          <Button variant="primary" size="lg" keys={['Enter']} icon={<ArrowRight size={19} />} onClick={start} disabled={!resumable && work === 0}>
+            {resumable ? 'Resume' : 'Start'}
+          </Button>
           {!resumable && work === 0 && introduced > 0 && (
             <Button variant="secondary" size="lg" icon={<ListChecks size={18} />} onClick={quickTest}>
               Quick test
@@ -123,11 +122,22 @@ export function Today() {
           )}
         </div>
 
-        {(plan.dueIds.length > 0 || newTotal > 0) && !resumable && (
+        {!resumable && (plan.dueIds.length > 0 || plan.carryIds.length > 0 || fresh > 0) && (
           <dl className="grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6">
             <Figure label="reviews" value={plan.dueIds.length} />
-            <Figure label="new" value={newTotal} />
-            <Figure label="minutes" value={plan.estMinutes} />
+            <div>
+              <dt className="small-caps text-ink-3">new</dt>
+              <dd className="flex items-center gap-1">
+                <StepButton label="Fewer new words (←)" onClick={() => step(-5)} disabled={newCount === 0}>
+                  <Minus size={16} />
+                </StepButton>
+                <span className="tabular min-w-[2ch] text-center font-display text-3xl font-semibold">{newTotal}</span>
+                <StepButton label="More new words (→)" onClick={() => step(5)} disabled={newCount >= fresh}>
+                  <Plus size={16} />
+                </StepButton>
+              </dd>
+            </div>
+            <Figure label="minutes" value={estMinutes} />
           </dl>
         )}
 
@@ -152,7 +162,7 @@ export function Today() {
         </div>
       </section>
 
-      <section className="anim-rise flex flex-col gap-6 [animation-delay:80ms]">
+      <section className="anim-rise flex flex-col gap-4 [animation-delay:80ms]">
         <div className="rounded-[22px] border border-line bg-surface p-6 shadow-card sm:p-7">
           <p className="small-caps text-ink-3">words you would recall today</p>
           <p className="mt-1 flex items-baseline gap-3">
@@ -162,9 +172,6 @@ export function Today() {
           <div className="mt-6">
             <MasteryBar counts={counts} />
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-ink-3">
-            Mastered means you would still recall it three weeks from now. The number above adds up your chance of recalling each learned word right now.
-          </p>
         </div>
 
         <div className="rounded-[22px] border border-line bg-surface p-6 shadow-card sm:p-7">
@@ -188,6 +195,21 @@ export function Today() {
         </div>
       </section>
     </div>
+  )
+}
+
+function StepButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="rounded-lg border border-line p-1 text-ink-2 transition-colors hover:border-line-strong hover:bg-surface-2 hover:text-ink disabled:opacity-30"
+    >
+      {children}
+    </button>
   )
 }
 

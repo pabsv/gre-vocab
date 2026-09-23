@@ -49,7 +49,7 @@ export function SettingsRoute() {
       <h1 className="font-display text-4xl font-semibold tracking-tight">Settings</h1>
 
       <Group title="daily pace">
-        <Row label="New words per day" detail={`Roughly ${perDayMinutes} minutes a day once reviews build up.`}>
+        <Row label="New words per day" detail={`Default on Today, where each session can change it. Roughly ${perDayMinutes} minutes a day.`}>
           <Range value={settings.newPerDay} min={10} max={60} step={5} onChange={(v) => set({ newPerDay: v })} />
         </Row>
         <Row label="Daily time budget" detail="When reviews pile up, fewer new words are added so the day fits this budget.">

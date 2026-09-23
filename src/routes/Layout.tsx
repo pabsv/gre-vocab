@@ -32,7 +32,7 @@ export function Layout() {
   })
 
   return (
-    <div className="min-h-dvh pb-28 sm:pb-12">
+    <div className="min-h-dvh pb-28 sm:pb-6">
       <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-8">
           <NavLink to="/" className="flex items-baseline gap-1.5">
@@ -60,7 +60,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-8 sm:pt-10">
+      <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-8 sm:pt-6">
         <Outlet />
       </main>
 

@@ -7,11 +7,13 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
       [['Enter'], 'Start, check, continue'],
       [['Space'], 'Flip or reveal'],
       [['1', '2', '3', '4'], 'Pick a multiple choice option'],
-      [['1', '←'], "Didn't know / wrong"],
-      [['2', '→'], 'Knew it / right'],
+      [['1', '←'], 'Knew it / right'],
+      [['2', '→'], "Didn't know / wrong"],
       [['Tab'], 'Hint while typing'],
       [['Ctrl', 'Enter'], 'I was right (override a typed miss)'],
+      [['Space'], 'Continue after a miss'],
       [['P'], 'Pronounce'],
+      [['M'], 'Auto pronounce on or off'],
       [['Ctrl', 'Z'], 'Undo last answer'],
       [['Esc'], 'Pause and leave'],
     ],
@@ -19,6 +21,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
   {
     title: 'Anywhere',
     rows: [
+      [['←', '→'], 'Fewer or more new words (Today)'],
       [['Alt', '1…5'], 'Today, Words, Mistakes, Stats, Settings'],
       [['/'], 'Search words'],
       [['?'], 'This sheet'],

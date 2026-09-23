@@ -77,7 +77,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  newPerDay: 40,
+  newPerDay: 30,
   budgetMin: 60,
   windowSize: 8,
   order: 'mixed',

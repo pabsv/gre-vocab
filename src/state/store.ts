@@ -82,8 +82,9 @@ interface State {
 
   init: () => Promise<void>
   ctx: () => EngineCtx
-  plan: (extraNew?: number) => DailyPlan
-  startDaily: (extraNew?: number) => void
+  /** Today's plan; `newCount` fixes the number of fresh words for this session. */
+  plan: (newCount?: number) => DailyPlan
+  startDaily: (newCount?: number) => void
   startList: (type: Exclude<SessionType, 'daily'>, ids: string[]) => void
   submit: (answer: Answer, extra?: Omit<Feedback, 'task' | 'correct'>) => void
   proceed: () => void
@@ -145,23 +146,24 @@ export const useStore = create<State>()((set, get) => {
       return { now: t, day: studyDay(t), device: deviceId, touch: isTouch(), newId: () => crypto.randomUUID(), progress: (id) => progress.get(id) }
     },
 
-    plan: (extraNew = 0) => {
+    plan: (newCount) => {
       const { progress, settings, meta } = get()
       return buildPlan({
         progress,
         order: orderFor(settings.order),
-        settings: { newPerDay: settings.newPerDay + extraNew, budgetMin: settings.budgetMin + extraNew },
+        settings,
         now: now(),
         suspended: suspendedFrom(meta),
+        newCount,
       })
     },
 
-    startDaily: (extraNew = 0) => {
+    startDaily: (newCount) => {
       const st = get()
       const t = now()
       const day = studyDay(t)
-      if (!extraNew && st.session && st.session.type === 'daily' && st.session.day === day && st.session.phase !== 'done') return
-      const plan = st.plan(extraNew)
+      if (newCount === undefined && st.session && st.session.type === 'daily' && st.session.day === day && st.session.phase !== 'done') return
+      const plan = st.plan(newCount)
       const s = nextTask(
         createDailySession({ day, now: t, dueIds: plan.dueIds, newIds: plan.newIds, carryIds: plan.carryIds, windowSize: st.settings.windowSize }),
         st.ctx(),
