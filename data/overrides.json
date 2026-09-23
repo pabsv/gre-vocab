@@ -1,0 +1,9 @@
+{
+  "_comment": "Manual fixes applied by scripts/build_words.py, keyed by entry id. exSpanWord marks the word to highlight in the example.",
+  "qualify-1": { "pos": "verb" },
+  "concede-v1": { "ex": "I concede. You win!" },
+  "simulacrum-n2": { "ex": "The early days of computer graphics made real people into a simulacrum that now seems comical." },
+  "thoroughgoing": { "defMasked": "very ____; complete" },
+  "check-v": { "exSpanWord": "unchecked" },
+  "execrate": { "exSpanWord": "execrable" }
+}
