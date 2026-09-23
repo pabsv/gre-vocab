@@ -5,6 +5,7 @@ import { useHotkeys } from '../lib/hotkeys'
 import { useStore } from '../state/store'
 import { ShortcutSheet } from '../ui/ShortcutSheet'
 import { SyncBadge } from '../ui/SyncBadge'
+import { UpdateToast } from '../ui/UpdateToast'
 
 export const TABS = [
   { to: '/', label: 'Today', icon: Sun },
@@ -90,6 +91,7 @@ export function Layout() {
         </div>
       )}
       {sheet && <ShortcutSheet onClose={() => setSheet(false)} />}
+      <UpdateToast />
     </div>
   )
 }
