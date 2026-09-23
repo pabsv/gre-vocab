@@ -1,0 +1,58 @@
+import { Kbd } from './Kbd'
+
+const GROUPS: { title: string; rows: [string[], string][] }[] = [
+  {
+    title: 'Studying',
+    rows: [
+      [['Enter'], 'Start, check, continue'],
+      [['Space'], 'Flip or reveal'],
+      [['1', '2', '3', '4'], 'Pick a multiple choice option'],
+      [['1', '←'], "Didn't know / wrong"],
+      [['2', '→'], 'Knew it / right'],
+      [['Tab'], 'Hint while typing'],
+      [['Ctrl', 'Enter'], 'I was right (override a typed miss)'],
+      [['P'], 'Pronounce'],
+      [['Ctrl', 'Z'], 'Undo last answer'],
+      [['Esc'], 'Pause and leave'],
+    ],
+  },
+  {
+    title: 'Anywhere',
+    rows: [
+      [['Alt', '1…5'], 'Today, Words, Mistakes, Stats, Settings'],
+      [['/'], 'Search words'],
+      [['?'], 'This sheet'],
+    ],
+  },
+]
+
+export function ShortcutSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="anim-fade fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-label="Keyboard shortcuts"
+        className="anim-rise w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-card"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {GROUPS.map((g) => (
+          <section key={g.title} className="mb-5 last:mb-0">
+            <h3 className="small-caps mb-3 text-ink-3">{g.title}</h3>
+            <dl className="grid gap-2.5">
+              {g.rows.map(([keys, label]) => (
+                <div key={label} className="flex items-center justify-between gap-4">
+                  <dt className="text-[0.95rem] text-ink-2">{label}</dt>
+                  <dd className="flex shrink-0 gap-1">
+                    {keys.map((k) => (
+                      <Kbd key={k}>{k}</Kbd>
+                    ))}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
+      </div>
+    </div>
+  )
+}

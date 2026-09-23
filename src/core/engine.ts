@@ -383,8 +383,11 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
   s.cur = null
   s.t = s0.t + 1
   s.last = task.id
-  s.answered = s0.answered + 1
-  s.correct = s0.correct + (ok ? 1 : 0)
+  // Flashcards are study, not answers: they stay out of the score.
+  if (task.mode !== 'flash') {
+    s.answered = s0.answered + 1
+    s.correct = s0.correct + (ok ? 1 : 0)
+  }
 
   const event: StudyEvent = {
     id: ctx.newId(),
