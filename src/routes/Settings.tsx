@@ -50,8 +50,8 @@ export function SettingsRoute() {
       <PageTitle>Settings</PageTitle>
 
       <Group title="daily pace">
-        <Row label="New words per day" detail={`Default on Today, where each session can change it. Roughly ${perDayMinutes} minutes a day.`}>
-          <Range value={settings.newPerDay} min={10} max={60} step={5} onChange={(v) => set({ newPerDay: v })} />
+        <Row label="New words per day" detail={`Starting size on Today; changing the stepper there or this slider here, whichever was last, sets the next session. Roughly ${perDayMinutes} minutes a day.`}>
+          <Range value={settings.newPerDay} min={10} max={60} step={5} onChange={(v) => set({ newPerDay: v, lastNew: null })} />
         </Row>
         <Row label="Daily time budget" detail="Today starts at your daily target; this budget only applies when no session size is picked.">
           <Range value={settings.budgetMin} min={20} max={150} step={10} suffix=" min" onChange={(v) => set({ budgetMin: v })} />

@@ -70,6 +70,8 @@ export type OrderMode = 'mixed' | 'common-first' | 'alphabetical'
 
 export interface Settings {
   newPerDay: number
+  /** Last total picked on Today's stepper; the next session starts there. Null until first used. */
+  lastNew: number | null
   budgetMin: number
   windowSize: number
   order: OrderMode
@@ -81,6 +83,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   newPerDay: 30,
+  lastNew: null,
   budgetMin: 60,
   windowSize: 8,
   order: 'mixed',

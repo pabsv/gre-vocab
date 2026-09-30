@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowRight, Flame, GraduationCap, ListChecks, Minus, Plus, Target } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import { activityByDay, bucketCounts, recallEstimate, streak, troubleList } from '../core/stats'
 import { addDays, daysBetween, parseDay, studyDay } from '../core/time'
@@ -24,6 +24,7 @@ export function Today() {
   const buildPlan = useStore((s) => s.plan)
   const startDaily = useStore((s) => s.startDaily)
   const startList = useStore((s) => s.startList)
+  const updateSettings = useStore((s) => s.updateSettings)
   const t = useNow()
   const today = studyDay(t)
 
@@ -37,13 +38,13 @@ export function Today() {
 
   const resumable = !!session && session.day === today && session.phase !== 'done'
   const fresh = counts.new - plan.carryIds.length
-  // Default to the daily target from Settings; the stepper moves the shown total in round steps of 5.
-  const [picked, setPicked] = useState<number | null>(null)
-  const newCount = Math.min(picked ?? plan.targetLeft, Math.max(0, fresh))
+  // The stepper remembers its last total (synced with Settings), else the daily target; it moves in round steps of 5.
+  const dial = settings.lastNew ?? settings.newPerDay
+  const newCount = Math.max(0, Math.min(dial - plan.carryIds.length, fresh))
   const step = (d: number) => {
     const total = newCount + plan.carryIds.length
     const next = d > 0 ? Math.floor(total / 5) * 5 + 5 : Math.ceil(total / 5) * 5 - 5
-    setPicked(Math.max(0, Math.min(Math.max(0, fresh), next - plan.carryIds.length)))
+    void updateSettings({ lastNew: Math.max(0, Math.min(fresh + plan.carryIds.length, next)) })
   }
   const work = plan.dueIds.length + plan.sweep.length + newCount + plan.carryIds.length
   const estMinutes = Math.round(((plan.dueIds.length + plan.sweep.length) * SEC_PER_REVIEW + (plan.carryIds.length + newCount) * SEC_PER_NEW) / 60)
