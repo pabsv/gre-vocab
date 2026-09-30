@@ -116,3 +116,23 @@ export function reviewRecallRate(events: readonly StudyEvent[], since: string): 
   }
   return n ? Math.round((ok / n) * 100) : null
 }
+
+/** Longest run of consecutive study days anywhere in the history. */
+export function bestStreak(activity: ReadonlyMap<string, DayActivity>): number {
+  const days = [...activity.entries()].filter(([, a]) => a.answers > 0).map(([d]) => d).sort()
+  let best = 0
+  let run = 0
+  for (let k = 0; k < days.length; k++) {
+    run = k > 0 && addDays(days[k - 1], 1) === days[k] ? run + 1 : 1
+    best = Math.max(best, run)
+  }
+  return best
+}
+
+/** Running total of words started, one value per day in `days` (which must be sorted). */
+export function startedByDay(activity: ReadonlyMap<string, DayActivity>, days: readonly string[]): number[] {
+  const first = days[0] ?? ''
+  let total = 0
+  for (const [d, a] of activity) if (d < first) total += a.newWords
+  return days.map((d) => (total += activity.get(d)?.newWords ?? 0))
+}

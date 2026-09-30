@@ -9,6 +9,7 @@ import { useHotkeys } from '../lib/hotkeys'
 import { useNow } from '../lib/useNow'
 import { suspendedFrom, useStore } from '../state/store'
 import { BUCKET_LABEL, dueLabel } from '../ui/format'
+import { PageTitle } from '../ui/Panel'
 import { WordDetail } from '../ui/WordDetail'
 
 type Filter = 'all' | Bucket | 'starred' | 'trouble' | 'suspended'
@@ -76,7 +77,7 @@ export function WordsRoute() {
   return (
     <div className="anim-rise flex flex-col gap-6">
       <div className="flex flex-col gap-4">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">Words</h1>
+        <PageTitle>Words</PageTitle>
         <label className="relative block max-w-xl">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
           <input
@@ -98,9 +99,11 @@ export function WordsRoute() {
             spellCheck={false}
             className="w-full rounded-2xl border border-line-strong bg-surface py-3 pl-11 pr-12 text-[1.02rem] text-ink outline-none placeholder:text-ink-3 focus:border-accent"
           />
-          <kbd className="kbd absolute right-4 top-1/2 -translate-y-1/2">/</kbd>
+          <span className="absolute right-4 top-1/2 hidden -translate-y-1/2 sm:flex">
+            <kbd className="kbd">/</kbd>
+          </span>
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
           {FILTERS.map((f) => (
             <Chip key={f.key} active={filter === f.key} onClick={() => setParam('f', f.key === 'all' ? null : f.key)}>
               {f.label}
@@ -126,14 +129,14 @@ export function WordsRoute() {
               <button
                 type="button"
                 onClick={() => setParam('id', e.id)}
-                className="grid w-full grid-cols-[minmax(7.5rem,11rem)_1fr_auto] items-baseline gap-4 px-4 py-3 text-left transition-colors hover:bg-surface-2 sm:px-5"
+                className="grid w-full grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-0.5 px-4 py-3 text-left transition-colors hover:bg-surface-2 sm:grid-cols-[minmax(7.5rem,11rem)_1fr_auto] sm:px-5"
               >
                 <span className="truncate font-display text-lg font-semibold text-ink">
                   {e.word}
                   {e.senses > 1 && <sup className="ml-0.5 text-[0.6em] font-normal text-ink-3">{e.sense}</sup>}
                   {meta.get(`star:${e.id}`) === true && <Star size={12} className="ml-1.5 inline fill-current align-baseline text-warn" />}
                 </span>
-                <span className="min-w-0 truncate text-[0.95rem] text-ink-2">
+                <span className="col-span-2 row-start-2 min-w-0 truncate text-[0.95rem] text-ink-2 sm:col-span-1 sm:row-start-auto">
                   <span className="mr-2 font-display italic text-ink-3">{e.pos.slice(0, 3)}.</span>
                   {e.def}
                 </span>
@@ -161,7 +164,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${active ? 'border-ink bg-ink text-bg' : 'border-line-strong bg-surface text-ink-2 hover:text-ink'}`}
+      className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors ${active ? 'border-ink bg-ink text-bg' : 'border-line-strong bg-surface text-ink-2 hover:text-ink'}`}
     >
       {children}
     </button>

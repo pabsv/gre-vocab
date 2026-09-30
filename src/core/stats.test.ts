@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { emptyProgress } from './derive'
 import { applyGrade, makeScheduler } from './fsrs'
-import { activityByDay, bucketCounts, confusionPairs, forecast, streak } from './stats'
+import { activityByDay, bestStreak, bucketCounts, confusionPairs, forecast, startedByDay, streak } from './stats'
 import { DAY_MS, studyDay } from './time'
 import type { Progress, StudyEvent } from './types'
 
@@ -51,5 +51,26 @@ describe('stats', () => {
     expect(streak(act, today)).toBe(2)
     expect(streak(act, studyDay(T0 + DAY_MS))).toBe(2)
     expect(streak(act, studyDay(T0 + 3 * DAY_MS))).toBe(0)
+  })
+
+  it('finds the longest streak anywhere in the history', () => {
+    const activity = activityByDay([
+      ev('2026-09-01'),
+      ev('2026-09-02'),
+      ev('2026-09-03'),
+      ev('2026-09-05'),
+      ev('2026-09-06'),
+    ])
+    expect(bestStreak(activity)).toBe(3)
+    expect(bestStreak(new Map())).toBe(0)
+  })
+
+  it('accumulates words started, counting days before the window', () => {
+    const activity = activityByDay([
+      ev('2026-09-01', { kind: 'new', entryId: 'a' }),
+      ev('2026-09-03', { kind: 'new', entryId: 'b' }),
+      ev('2026-09-03', { kind: 'new', entryId: 'c' }),
+    ])
+    expect(startedByDay(activity, ['2026-09-02', '2026-09-03', '2026-09-04'])).toEqual([1, 3, 3])
   })
 })

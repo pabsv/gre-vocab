@@ -13,6 +13,7 @@ import { schedulerFor, useStore } from '../state/store'
 import { Button } from '../ui/Button'
 import { Heatmap, MasteryBar } from '../ui/charts'
 import { plural } from '../ui/format'
+import { Panel } from '../ui/Panel'
 
 export function Today() {
   const navigate = useNavigate()
@@ -115,12 +116,20 @@ export function Today() {
           <h1 className="mt-2 font-display text-[clamp(2.4rem,6.5vw,3.9rem)] font-semibold leading-[1.02] tracking-tight">{headline}</h1>
           {sub && <p className="mt-4 max-w-xl text-lg text-ink-2">{sub}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="primary" size="lg" keys={['Enter']} icon={<ArrowRight size={19} />} onClick={start} disabled={!resumable && work === 0}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button
+            variant="primary"
+            size="lg"
+            keys={['Enter']}
+            icon={<ArrowRight size={19} />}
+            onClick={start}
+            disabled={!resumable && work === 0}
+            className="w-full sm:w-auto"
+          >
             {resumable ? 'Resume' : 'Start'}
           </Button>
           {!resumable && work === 0 && introduced > 0 && (
-            <Button variant="secondary" size="lg" icon={<ListChecks size={18} />} onClick={quickTest}>
+            <Button variant="secondary" size="lg" icon={<ListChecks size={18} />} onClick={quickTest} className="w-full sm:w-auto">
               Quick test
             </Button>
           )}
@@ -167,36 +176,29 @@ export function Today() {
       </section>
 
       <section className="anim-rise flex flex-col gap-4 [animation-delay:80ms]">
-        <div className="rounded-[22px] border border-line bg-surface p-6 shadow-card sm:p-7">
-          <p className="small-caps text-ink-3">words you would recall today</p>
-          <p className="mt-1 flex items-baseline gap-3">
+        <Panel title="words you would recall today">
+          <p className="flex items-baseline gap-3">
             <span className="tabular font-display text-6xl font-semibold leading-none">{Math.round(recall)}</span>
             <span className="text-ink-3">of {ENTRIES.length.toLocaleString()}</span>
           </p>
           <div className="mt-6">
             <MasteryBar counts={counts} />
           </div>
-        </div>
+        </Panel>
 
-        <div className="rounded-[22px] border border-line bg-surface p-6 shadow-card sm:p-7">
-          <div className="mb-4 flex items-baseline justify-between">
-            <p className="small-caps text-ink-3">streak</p>
-            <p className="font-display text-2xl font-semibold">{plural(streakDays, 'day')}</p>
-          </div>
-          <div className="overflow-x-auto">
-            <Heatmap activity={activity} today={today} />
-          </div>
-        </div>
+        <Panel title="streak" aside={<p className="font-display text-2xl font-semibold">{plural(streakDays, 'day')}</p>}>
+          <Heatmap activity={activity} today={today} />
+        </Panel>
 
-        <div className="flex items-start gap-3 rounded-[22px] border border-line bg-surface p-6 shadow-card">
+        <Panel className="flex items-start gap-3">
           <Target size={18} className="mt-0.5 shrink-0 text-accent" />
           <p className="text-[0.95rem] leading-relaxed text-ink-2">
             {counts.new === 0
-              ? 'Every word is introduced. From here it is reviews only.'
-              : `At ${settings.newPerDay} a day, every word is introduced by ${parseDay(introducedBy).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}.`}
+              ? 'Every word is started. From here it is reviews only.'
+              : `At ${settings.newPerDay} a day, the last word starts on ${parseDay(introducedBy).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}.`}
             {exam !== null && exam >= 0 && ` GRE in ${plural(exam, 'day')}${daysToIntroduce > exam ? '; raise the daily pace in Settings to finish in time.' : '.'}`}
           </p>
-        </div>
+        </Panel>
       </section>
     </div>
   )

@@ -6,6 +6,7 @@ import { exportData, importData, type ExportFile } from '../db/repo'
 import { clockOffset, setClockOffset } from '../lib/clock'
 import { schedulerFor, useStore } from '../state/store'
 import { Button } from '../ui/Button'
+import { PageTitle } from '../ui/Panel'
 import { SyncPanel } from '../ui/SyncPanel'
 
 export function SettingsRoute() {
@@ -45,8 +46,8 @@ export function SettingsRoute() {
   }
 
   return (
-    <div className="anim-rise mx-auto flex max-w-3xl flex-col gap-10">
-      <h1 className="font-display text-4xl font-semibold tracking-tight">Settings</h1>
+    <div className="anim-rise flex max-w-3xl flex-col gap-8 sm:gap-10">
+      <PageTitle>Settings</PageTitle>
 
       <Group title="daily pace">
         <Row label="New words per day" detail={`Default on Today, where each session can change it. Roughly ${perDayMinutes} minutes a day.`}>

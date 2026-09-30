@@ -10,6 +10,7 @@ import { useNow } from '../lib/useNow'
 import { useStore } from '../state/store'
 import { Button } from '../ui/Button'
 import { plural } from '../ui/format'
+import { PageTitle } from '../ui/Panel'
 
 export function MistakesRoute() {
   const navigate = useNavigate()
@@ -48,14 +49,10 @@ export function MistakesRoute() {
   return (
     <div className="anim-rise flex flex-col gap-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-4xl font-semibold tracking-tight">Mistakes</h1>
-          <p className="mt-2 max-w-xl text-ink-2">
-            Every miss adds weight to a word; the weight fades over two weeks and shrinks each time you get it right. Heavy words come first in drills and as
-            distractors.
-          </p>
-        </div>
-        <Button variant="primary" icon={<Flame size={18} />} onClick={drillTop} disabled={!trouble.length}>
+        <PageTitle sub="Every miss adds weight to a word; the weight fades over two weeks and shrinks each time you get it right. Heavy words come first in drills and as distractors.">
+          Mistakes
+        </PageTitle>
+        <Button variant="primary" icon={<Flame size={18} />} onClick={drillTop} disabled={!trouble.length} className="w-full sm:w-auto">
           Drill top {Math.min(20, trouble.length) || ''}
         </Button>
       </div>

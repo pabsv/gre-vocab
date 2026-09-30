@@ -33,8 +33,8 @@ export function Layout() {
 
   return (
     <div className="min-h-dvh pb-28 sm:pb-6">
-      <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-8">
+      <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:h-16 sm:px-8">
           <NavLink to="/" className="flex items-baseline gap-1.5">
             <span className="marker font-display text-[1.45rem] font-semibold leading-none text-ink">Vocab</span>
             <span className="small-caps text-sm text-ink-3">gre</span>
@@ -60,7 +60,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-8 sm:pt-6">
+      <main className="mx-auto max-w-6xl px-4 pt-5 sm:px-8 sm:pt-8">
         <Outlet />
       </main>
 
@@ -71,10 +71,16 @@ export function Layout() {
               key={t.to}
               to={t.to}
               end={t.to === '/'}
-              className={({ isActive }) => `flex flex-col items-center gap-1 py-2.5 text-[11px] ${isActive ? 'text-accent' : 'text-ink-3'}`}
+              className={({ isActive }) => `flex flex-col items-center gap-0.5 pb-2 pt-1.5 text-[11px] font-medium ${isActive ? 'text-accent' : 'text-ink-3'}`}
             >
-              <t.icon size={21} strokeWidth={1.8} />
-              {t.label}
+              {({ isActive }) => (
+                <>
+                  <span className={`flex h-7 w-14 items-center justify-center rounded-full transition-colors ${isActive ? 'bg-accent-soft' : ''}`}>
+                    <t.icon size={20} strokeWidth={isActive ? 2.1 : 1.8} />
+                  </span>
+                  {t.label}
+                </>
+              )}
             </NavLink>
           ))}
         </div>
