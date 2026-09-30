@@ -19,7 +19,7 @@ function event(over: Partial<StudyEvent>): StudyEvent {
 describe('repo', () => {
   it('persists answer, progress and session together, and resumes the same task', async () => {
     const db = freshDb()
-    const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 'd', touch: false, newId: () => crypto.randomUUID(), progress: () => undefined }
+    const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 'd', newId: () => crypto.randomUUID(), progress: () => undefined }
     const ids = buildOrder('mixed').slice(0, 8)
     let s = nextTask(createDailySession({ day: ctx.day, now: T0, dueIds: [], newIds: ids, carryIds: [], windowSize: 8 }), ctx)
     const r = applyAnswer(s, { correct: false, knew: false }, ctx)

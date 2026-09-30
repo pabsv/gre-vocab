@@ -7,31 +7,32 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
 * Source: Magoosh 1000 GRE Words Anki deck (`data/magoosh-1000.apkg`), 1066 notes, 997 headwords, 66 of them with several senses.
 * The deck's "Frequency" field is not a frequency. It is Magoosh's list order: Common 1 to 323, Basic 324 to 699, Advanced 700 to 1066, alphabetical inside each section. It becomes `tier`.
 * The unit of learning is a sense, not a headword. Sibling senses are introduced together, kept apart in a session and never used as each other's distractors, because the GRE likes secondary meanings.
-* Cleaning (all in `scripts/build_words.py`): entities decoded; about 30 example sentences that were glued onto definitions split back out; the "This word has other definitions" line becomes a note; section markers stripped; `qualify` fixed via overrides; the headword masked where a definition gives it away; synonym groups (strict for typing leniency, loose for distractor exclusion) and look-alike spellings precomputed. Magoosh's own punctuation is kept.
+* Cleaning (all in `scripts/build_words.py`): entities decoded; about 30 example sentences that were glued onto definitions split back out; the "This word has other definitions" line becomes a note; section markers stripped; `qualify` fixed via overrides; the headword masked where a definition gives it away; synonym groups (strict and loose, both kept out of each other's distractors) and look-alike spellings precomputed. Magoosh's own punctuation is kept.
 
 ## Learning
 
-* Ladder per new word, on day one: flashcard as a pretest, multiple choice, type the word, then explain the meaning. The explain step runs as a final sweep over the whole day's words, because a longer gap makes that recall worth more and it is the direction the GRE tests.
+* Typing was removed (2026-09-30). The GRE is all multiple choice and never asks you to produce or spell a word, so typing trained a skill the test does not use and cost the most time per word. What the test needs is word to gist (rough meaning and tone) and picking the word that fits a sentence.
+* Ladder per new word, on day one: flashcard as a pretest, choose the meaning, then the sentence blank (choose the word from its meaning when the entry has no example), then explain the meaning. The explain step runs as a final sweep over the whole day's words, because a longer gap makes that recall worth more and it is the direction the GRE tests.
 * New words move through a sliding window of 8 (a new word enters when one graduates) instead of fixed rounds, so a round never ends in cramming the last two words. A recap checkpoint follows every 8 graduations.
-* "Knew it" on the flashcard fast-tracks a word: one typed check, and an exact answer graduates it as Easy.
-* In the window a miss drops a word one rung (never below multiple choice) and brings it back 2 cards later; a hit brings it back after 2, then 4 cards.
+* "Knew it" on the flashcard fast-tracks a word: one sentence blank check graduates it as Easy. Fast-tracked words still get the final sweep, because a four-option check can be guessed; a failed sweep amends the grade to Again.
+* In the window a miss drops a word one rung (never back to the flashcard) and brings it back 2 cards later; a hit brings it back after 2, then 4 cards.
 * Grades into FSRS, one per word per study day:
 
   | Situation | Grade |
   |---|---|
-  | Fast-track, exact typed check | Easy |
-  | New word, 0 or 1 miss, sweep passed or skipped | Good |
-  | New word, 2+ misses (a hint counts as one) | Hard |
+  | Fast-track, check passed | Easy |
+  | New word, 0 or 1 miss, sweep passed | Good |
+  | New word, 2+ misses | Hard |
   | Sweep failed (amends the day's grade) | Again |
-  | Review correct, typos allowed (the GRE never tests spelling) | Good |
-  | Review correct with a hint | Hard |
+  | Review correct | Good |
   | Review wrong, then relearned in the same session | Again |
 
-* Reviews rotate explain the meaning, type the word and a sentence blank, weighted toward the weaker direction for that word but never below 30% for either. Touch screens lean on explain and sentence blank because typing is slow on a phone.
-* Typed answers: inflections accepted; a near miss counts as a typo only when it is closer to the target than to every other deck word; typing another deck word is a confusion; typing a same-meaning deck word is a free retry. Shared definitions show the first letter up front.
+* Reviews are explain the meaning (about 65%) or a sentence blank, shifted toward whichever is weaker for that word but never below 30% for either. Words without an example sentence always explain.
+* Drills run choose the meaning, sentence blank, explain. Quick tests and the baseline are one explain per word.
+* Old `type` events stay in history and still count in FSRS; nothing new produces them.
 * Mistake weight per word (+1 per miss, half life 14 days, times 0.6 on a clean hit) plus recorded confusion pairs drive the Mistakes page, drills and distractor choice. Drills skip words due today so cramming does not inflate the next review, and they never touch the schedule.
 * FSRS (ts-fsrs 5.4.2): target recall 90%, maximum interval 120 days, fuzz on, short-term steps off (the session engine handles same-day repetition). New-card first intervals: Again 1, Hard 2, Good 3, Easy 8 days.
-* Pace: 30 new words a day by default with a 60 minute budget; new words shrink automatically when reviews pile up (10 s per review, 50 s per new word). Today has a stepper (← →) that sets the exact number of new words for one session, overriding target and budget. Measured estimate: about 40 minutes a day at 30 new words once reviews peak.
+* Pace: 30 new words a day by default with a 60 minute budget; new words shrink automatically when reviews pile up (10 s per review, 40 s per new word; was 50 s with typing, re-measure after a week). Today has a stepper (← →) that sets the exact number of new words for one session, overriding target and budget. Measured estimate: about 40 minutes a day at 30 new words once reviews peak.
 * New-word order is a seeded shuffle per tier, interleaved in proportion to tier size (all three sections finish together), senses adjacent, look-alike headwords at least 60 entries apart so they land on different days. Deterministic, so devices agree without syncing it.
 
 ## Storage and sync
@@ -45,8 +46,7 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
 
 * Dictionary-desk look: headwords in Source Serif 4 with superscript sense numbers, UI in Schibsted Grotesk (the plan said Inter; swapped for more character), a highlighter mark on the word inside example sentences, warm paper light theme and ink dark theme.
 * One blue carries both accent and charts. Mastery uses an ordinal blue ramp, the heatmap a sequential blue, two-series charts blue and orange; all validated for both themes. Green, red and amber are reserved for answer feedback.
-* Keyboard first (keys matched by `e.code`), swipe and large targets on phones, inputs with autocorrect and capitalisation off.
+* Keyboard first (keys matched by `e.code`), swipe and large targets on phones, the explain input with autocorrect and capitalisation off.
 * Self grading reads left to right: Knew it / Right is 1 and ←, Didn't know / Wrong is 2 and →, on both the flashcard and the sweep. M toggles auto pronounce. Space continues after any miss.
 * No instructional copy or task labels on study cards (user feedback 2026-09-23): the header already says which phase you are in, and extra sentences slow reading.
-* A typed miss shows the correct word large and your attempt small, grey and struck through, so the wrong spelling is not the first thing you see.
 * Study screens must fit one laptop screen without scrolling (checked at 1536x730 against the longest entries).

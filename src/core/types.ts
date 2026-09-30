@@ -1,13 +1,14 @@
 import type { CardRow } from './fsrs'
 
-/** What the learner sees for one task. */
+/** What the learner sees for one task. `type` only appears in old events (typing was removed). */
 export type Mode = 'flash' | 'mcq-w2d' | 'mcq-d2w' | 'mcq-blank' | 'type' | 'explain'
 
 /**
  * A rung on an item's path. Concrete modes are shown as is; `mcq` picks a direction,
- * `recall` picks a review mode (explain, type or sentence blank), `quiz` picks type or explain.
+ * `check` is the sentence blank (word from meaning without an example), `recall` picks a
+ * review mode (explain or sentence blank).
  */
-export type Step = Mode | 'mcq' | 'recall' | 'quiz'
+export type Step = Mode | 'mcq' | 'check' | 'recall'
 
 export type ItemKind = 'new' | 'review' | 'relearn' | 'sweep' | 'drill' | 'test' | 'baseline'
 export type EventKind = ItemKind | 'filler' | 'known' | 'reset'
@@ -69,7 +70,6 @@ export interface Settings {
   budgetMin: number
   windowSize: number
   order: OrderMode
-  retypeOnMiss: boolean
   autoSpeak: boolean
   retention: number
   examDate: string | null
@@ -81,7 +81,6 @@ export const DEFAULT_SETTINGS: Settings = {
   budgetMin: 60,
   windowSize: 8,
   order: 'mixed',
-  retypeOnMiss: true,
   autoSpeak: false,
   retention: 0.9,
   examDate: null,

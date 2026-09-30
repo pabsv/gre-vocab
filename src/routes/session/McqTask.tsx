@@ -47,7 +47,7 @@ export function McqTask({ task, feedback }: { task: Task; feedback: Feedback | n
       {task.mode === 'mcq-w2d' && <Headword entry={entry} size="lg" />}
       {task.mode === 'mcq-d2w' && (
         <div className="flex flex-col gap-2">
-          <p className="font-display text-[clamp(1.35rem,3.6vw,1.7rem)] leading-snug text-ink">{entry.def}</p>
+          <p className="font-display text-[clamp(1.35rem,3.6vw,1.7rem)] leading-snug text-ink">{entry.defMasked ?? entry.def}</p>
           <p className="font-display italic text-ink-3">{entry.pos}</p>
         </div>
       )}

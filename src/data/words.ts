@@ -12,7 +12,7 @@ export interface Entry {
   senses: number
   pos: Pos
   def: string
-  /** Definition with the headword blanked, for type-the-word prompts. */
+  /** Definition with the headword blanked, for prompts that ask for the word. */
   defMasked?: string
   ex?: string
   /** Character range of the headword (possibly inflected) inside `ex`. */
@@ -67,11 +67,6 @@ export function relatedIds(id: string): ReadonlySet<string> {
     relatedCache.set(id, set)
   }
   return set
-}
-
-/** True when the definition is shared with other deck words, so type-the-word shows the first letter. */
-export function hasSharedMeaning(id: string): boolean {
-  return relatedIds(id).size > 0
 }
 
 /** Entries of look-alike headwords. */

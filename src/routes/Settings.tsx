@@ -80,9 +80,6 @@ export function SettingsRoute() {
             ]}
           />
         </Row>
-        <Row label="Retype after a miss" detail="After a wrong typed answer, type the word once before moving on.">
-          <Toggle checked={settings.retypeOnMiss} onChange={(v) => set({ retypeOnMiss: v })} />
-        </Row>
         <Row label="Pronounce on reveal" detail="Speak the word when a new flashcard is flipped. P pronounces any time.">
           <Toggle checked={settings.autoSpeak} onChange={(v) => set({ autoSpeak: v })} />
         </Row>

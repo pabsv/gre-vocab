@@ -114,7 +114,7 @@ export function MistakesRoute() {
                 })}
               </ul>
             ) : (
-              <Empty>When you pick or type one word for another, the pair lands here.</Empty>
+              <Empty>When you pick one word for another, the pair lands here.</Empty>
             )}
           </section>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areSiblings } from '../data/words'
+import { areSiblings, getEntry } from '../data/words'
 import { derive } from './derive'
 import {
   applyAnswer,
@@ -45,7 +45,6 @@ function run(session: Session, learner: Learner, seed: Rng, now: number, progres
     now,
     day: studyDay(now),
     device: 'test',
-    touch: false,
     newId: () => `ev${String(n++).padStart(6, '0')}`,
     progress: (id) => progress.get(id),
   }
@@ -79,12 +78,12 @@ const siblingAdjacent = (shown: Task[]) => shown.filter((t, k) => k > 0 && areSi
 describe('engine: new words', () => {
   const ids = ORDER.slice(0, 40)
 
-  it('walks every word through flash, MCQ, type, then the sweep', () => {
+  it('walks every word through flash, two MCQs, then the sweep', () => {
     const { finished, events, shown } = run(newDay(ids), perfect, 1, T0)
     expect(finished).toBe(true)
     for (const id of ids) {
       const modes = shown.filter((t) => t.id === id && t.kind !== 'filler').map((t) => (t.mode.startsWith('mcq') ? 'mcq' : t.mode))
-      expect(modes).toEqual(['flash', 'mcq', 'type', 'explain'])
+      expect(modes).toEqual(['flash', 'mcq', 'mcq', 'explain'])
       const grades = events.filter((e) => e.entryId === id && e.grade)
       expect(grades).toHaveLength(1)
       expect(grades[0].grade).toBe(3)
@@ -96,7 +95,7 @@ describe('engine: new words', () => {
     const { finished, events, shown } = run(newDay(ids), knowsAll, 2, T0)
     expect(finished).toBe(true)
     for (const id of ids) {
-      expect(shown.filter((t) => t.id === id && t.kind !== 'filler').map((t) => t.mode)).toEqual(['flash', 'type'])
+      expect(shown.filter((t) => t.id === id && t.kind !== 'filler').map((t) => t.mode)).toEqual(['flash', getEntry(id).exSpan ? 'mcq-blank' : 'mcq-d2w', 'explain'])
       expect(events.find((e) => e.entryId === id && e.grade)?.grade).toBe(4)
     }
   })
@@ -153,6 +152,7 @@ describe('engine: reviews', () => {
       expect(day4.progress.get(id)!.due).toBeGreaterThan(later)
     }
     expect(backToBack(day4.shown)).toBe(0)
+    expect(day4.shown.every((t) => t.mode === 'explain' || t.mode.startsWith('mcq'))).toBe(true)
   })
 
   it('shrinks new words when reviews eat the budget', () => {
@@ -161,7 +161,7 @@ describe('engine: reviews', () => {
     expect(plan.newIds.length).toBeGreaterThanOrEqual(40)
     expect(plan.newIds.length).toBeLessThanOrEqual(43)
     const tight = buildPlan({ progress, order: ORDER, settings: { newPerDay: 40, budgetMin: 10 }, now: T0, suspended: new Set() })
-    expect(tight.newIds.length).toBeLessThanOrEqual(14)
+    expect(tight.newIds.length).toBeLessThanOrEqual(17)
   })
 
   it('honours an explicit session size over target and budget', () => {
@@ -176,7 +176,7 @@ describe('engine: reviews', () => {
 
 describe('engine: undo and list sessions', () => {
   it('undo restores the exact previous state', () => {
-    const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 't', touch: false, newId: () => 'x', progress: () => undefined }
+    const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 't', newId: () => 'x', progress: () => undefined }
     const s1 = nextTask(newDay(ORDER.slice(0, 10)), ctx)
     const { session: s2 } = applyAnswer(s1, { correct: false, knew: false }, ctx)
     const undone = undoLast(s2)!

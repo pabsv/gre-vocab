@@ -14,7 +14,6 @@ import {
   type Task,
 } from '../core/engine'
 import { makeScheduler } from '../core/fsrs'
-import type { TypedVerdict } from '../core/grade'
 import { buildOrder } from '../core/order'
 import { buildPlan, type DailyPlan } from '../core/plan'
 import { studyDay } from '../core/time'
@@ -28,10 +27,6 @@ export interface Feedback {
   correct: boolean
   /** MCQ: the option picked. */
   picked?: string
-  /** Type mode: what was typed and how it was judged. */
-  typed?: string
-  verdict?: TypedVerdict
-  hint?: number
 }
 
 const schedulers = new Map<number, FSRS>()
@@ -53,8 +48,6 @@ export function orderFor(mode: OrderMode): string[] {
   }
   return o
 }
-
-const isTouch = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches
 
 /** Listeners that want to know about local writes (the sync loop). */
 const writeListeners = new Set<() => void>()
@@ -89,7 +82,6 @@ interface State {
   submit: (answer: Answer, extra?: Omit<Feedback, 'task' | 'correct'>) => void
   proceed: () => void
   undo: () => void
-  override: () => void
   continueCheckpoint: () => void
   endSession: () => void
   updateSettings: (patch: Partial<Settings>) => Promise<void>
@@ -130,7 +122,7 @@ export const useStore = create<State>()((set, get) => {
       const loaded = await repo.loadState()
       const settings: Settings = { ...DEFAULT_SETTINGS, ...((loaded.meta.get('settings') as Partial<Settings> | undefined) ?? {}) }
       let session = loaded.session
-      if (session && (session.day !== studyDay(now()) || session.phase === 'done' || session.v !== 1)) {
+      if (session && (session.day !== studyDay(now()) || session.phase === 'done' || session.v !== 2)) {
         session = null
         await repo.saveSession(null)
       }
@@ -143,7 +135,7 @@ export const useStore = create<State>()((set, get) => {
     ctx: () => {
       const t = now()
       const { progress, deviceId } = get()
-      return { now: t, day: studyDay(t), device: deviceId, touch: isTouch(), newId: () => crypto.randomUUID(), progress: (id) => progress.get(id) }
+      return { now: t, day: studyDay(t), device: deviceId, newId: () => crypto.randomUUID(), progress: (id) => progress.get(id) }
     },
 
     plan: (newCount) => {
@@ -212,13 +204,6 @@ export const useStore = create<State>()((set, get) => {
           notifyWrite()
         })
         .catch(fail)
-    },
-
-    override: () => {
-      const fb = get().feedback
-      if (!fb || fb.correct) return
-      get().undo()
-      get().submit({ correct: true, answer: fb.typed, hint: fb.hint }, { typed: fb.typed, verdict: { kind: 'correct' }, hint: fb.hint })
     },
 
     continueCheckpoint: () => {

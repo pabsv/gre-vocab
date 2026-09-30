@@ -96,7 +96,6 @@ export function StatsRoute() {
             <tbody className="divide-y divide-line">
               {[
                 ['Explain the meaning', byMode.explain],
-                ['Type the word', byMode.type],
                 ['Sentence blank', byMode.blank],
                 ['Multiple choice', byMode.mcq],
               ].map(([label, [ok, n]]) => (

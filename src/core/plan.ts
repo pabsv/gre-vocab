@@ -4,7 +4,7 @@ import type { Progress, Settings } from './types'
 
 /** Rough cost of one review and of one new word through the whole ladder (incl. misses). */
 export const SEC_PER_REVIEW = 10
-export const SEC_PER_NEW = 50
+export const SEC_PER_NEW = 40
 
 export interface DailyPlan {
   day: string

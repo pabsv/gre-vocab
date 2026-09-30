@@ -1,4 +1,4 @@
-import { areSiblings, getEntry, hasSharedMeaning, type Entry } from '../data/words'
+import { areSiblings, getEntry, type Entry } from '../data/words'
 import { pickOptions } from './distractors'
 import { hashSeed, pickOne, pickWeighted, shuffle, type Rng } from './rng'
 import type { GradeValue, ItemKind, Mode, Progress, Step, StudyEvent } from './types'
@@ -18,9 +18,7 @@ export interface Item {
   readyAt: number
   order: number
   misses: number
-  hints: number
-  typos: number
-  /** "Knew it" on the flashcard: one typed check instead of the full ladder. */
+  /** "Knew it" on the flashcard: one check instead of the full ladder. */
   fast?: boolean
   /** A review already received its FSRS grade in this session. */
   graded?: boolean
@@ -36,8 +34,6 @@ export interface Task {
   mode: Mode
   /** MCQ option entry ids, target included. */
   options?: string[]
-  /** Show the first letter up front: the definition is shared with other deck words. */
-  firstLetter?: boolean
   /** Show this sense's example as context (multi-sense words in explain mode). */
   context?: boolean
 }
@@ -50,7 +46,7 @@ export interface Graduate {
 }
 
 export interface SessionCore {
-  v: 1
+  v: 2
   type: SessionType
   day: string
   createdAt: number
@@ -83,8 +79,6 @@ export interface EngineCtx {
   now: number
   day: string
   device: string
-  /** Phones lean on explain and sentence blank instead of typing. */
-  touch: boolean
   newId: () => string
   progress: (id: string) => Progress | undefined
 }
@@ -93,8 +87,6 @@ export interface Answer {
   correct: boolean
   /** Flashcard only: "Knew it". */
   knew?: boolean
-  typo?: boolean
-  hint?: number
   confusedWith?: string
   answer?: string
   ms?: number
@@ -104,15 +96,18 @@ const UNDO_DEPTH = 5
 /** Cards to wait before a word returns after each successful step. */
 const GAPS = [2, 4, 6]
 const MISS_GAP = 2
-const FULL_LADDER: Step[] = ['flash', 'mcq', 'type']
+/** Meaning first (the GRE direction), then the word in context. The final sweep adds recall. */
+const FULL_LADDER: Step[] = ['flash', 'mcq-w2d', 'check']
+const CARRY_LADDER: Step[] = ['mcq-w2d', 'check']
+const FAST_LADDER: Step[] = ['flash', 'check']
 
 function blankItem(id: string, kind: ItemKind, phase: WorkPhase, path: Step[], readyAt: number, order: number): Item {
-  return { id, kind, phase, path, i: 0, readyAt, order, misses: 0, hints: 0, typos: 0 }
+  return { id, kind, phase, path, i: 0, readyAt, order, misses: 0 }
 }
 
 function baseSession(type: SessionType, day: string, now: number, windowSize: number): Session {
   return {
-    v: 1,
+    v: 2,
     type,
     day,
     createdAt: now,
@@ -155,10 +150,10 @@ export function createDailySession(input: {
   return s
 }
 
-/** Drill (MCQ, type, explain), test (one attempt) or baseline (explain, then type) over a list. */
+/** Drill (two MCQs, then explain), test or baseline (one explain) over a list. */
 export function createListSession(type: Exclude<SessionType, 'daily'>, ids: readonly string[], day: string, now: number): Session {
   const s = baseSession(type, day, now, 8)
-  const path: Step[] = type === 'drill' ? ['mcq', 'type', 'explain'] : type === 'test' ? ['quiz'] : ['explain', 'type']
+  const path: Step[] = type === 'drill' ? ['mcq-w2d', 'check', 'explain'] : ['explain']
   let order: string[]
   ;[order, s.rng] = shuffle(ids, s.rng)
   s.pool = order.map((id, k) => blankItem(id, type, 'list', path, k, k))
@@ -190,7 +185,7 @@ function admit(s: Session) {
   while (live < s.windowSize && s.newQueue.length) {
     const [q, ...rest] = s.newQueue
     s.newQueue = rest
-    s.pool.push(blankItem(q.id, 'new', 'new', q.carry ? ['mcq', 'type'] : [...FULL_LADDER], s.t, s.nextOrder++))
+    s.pool.push(blankItem(q.id, 'new', 'new', q.carry ? [...CARRY_LADDER] : [...FULL_LADDER], s.t, s.nextOrder++))
     live++
   }
 }
@@ -204,7 +199,7 @@ function enterCheckpoint(s: Session, resume: Phase) {
 
 function startSweep(s: Session) {
   const swept = new Set(s.pool.filter((x) => x.phase === 'sweep').map((x) => x.id))
-  const todo = s.graduated.filter((g) => !g.fast && !swept.has(g.id))
+  const todo = s.graduated.filter((g) => !swept.has(g.id))
   if (s.type !== 'daily' || !todo.length) {
     s.phase = 'done'
     return
@@ -246,28 +241,24 @@ const hasBlank = (e: Entry) => !!(e.ex && e.exSpan)
 
 const ratio = ([ok, n]: [number, number]) => (ok + 1) / (n + 2)
 
-/** Review mode: weighted toward the weaker direction, each direction kept between 30% and 70%. */
-function pickRecall(e: Entry, p: Progress | undefined, touch: boolean, rng: Rng): [Mode, Rng] {
-  let wExplain = touch ? 0.5 : 0.45
-  let wType = touch ? 0.15 : 0.35
-  const wBlank = hasBlank(e) ? (touch ? 0.35 : 0.2) : 0
-  if (p) {
-    const share = wExplain + wType
-    const frac = Math.min(0.7, Math.max(0.3, wExplain / share + (ratio(p.dir.type) - ratio(p.dir.explain)) * 0.5))
-    wExplain = share * frac
-    wType = share * (1 - frac)
-  }
+/**
+ * Review mode: explain the meaning or a sentence blank, weighted toward the weaker one for this
+ * word, each kept between 30% and 70%. Words without an example sentence always explain.
+ */
+function pickRecall(e: Entry, p: Progress | undefined, rng: Rng): [Mode, Rng] {
+  if (!hasBlank(e)) return ['explain', rng]
+  const shift = p ? (ratio(p.dir.blank) - ratio(p.dir.explain)) * 0.5 : 0
+  const wExplain = Math.min(0.7, Math.max(0.3, 0.65 + shift))
   return pickWeighted<Mode>(
     [
       ['explain', wExplain],
-      ['type', wType],
-      ['mcq-blank', wBlank],
+      ['mcq-blank', 1 - wExplain],
     ],
     rng,
   )
 }
 
-function resolveStep(step: Step, e: Entry, p: Progress | undefined, touch: boolean, rng: Rng): [Mode, Rng] {
+function resolveStep(step: Step, e: Entry, p: Progress | undefined, rng: Rng): [Mode, Rng] {
   switch (step) {
     case 'mcq':
       return pickWeighted<Mode>(
@@ -278,16 +269,10 @@ function resolveStep(step: Step, e: Entry, p: Progress | undefined, touch: boole
         ],
         rng,
       )
+    case 'check':
+      return [hasBlank(e) ? 'mcq-blank' : 'mcq-d2w', rng]
     case 'recall':
-      return pickRecall(e, p, touch, rng)
-    case 'quiz':
-      return pickWeighted<Mode>(
-        [
-          ['type', 0.5],
-          ['explain', 0.5],
-        ],
-        rng,
-      )
+      return pickRecall(e, p, rng)
     case 'mcq-blank':
       return [hasBlank(e) ? 'mcq-blank' : 'mcq-w2d', rng]
     default:
@@ -297,7 +282,7 @@ function resolveStep(step: Step, e: Entry, p: Progress | undefined, touch: boole
 
 function withTask(s: Session, id: string, kind: Task['kind'], step: Step, ctx: EngineCtx): Session {
   const e = getEntry(id)
-  const [mode, afterMode] = resolveStep(step, e, ctx.progress(id), ctx.touch, s.rng)
+  const [mode, afterMode] = resolveStep(step, e, ctx.progress(id), s.rng)
   let rng = afterMode
   let options: string[] | undefined
   if (mode.startsWith('mcq')) {
@@ -306,7 +291,6 @@ function withTask(s: Session, id: string, kind: Task['kind'], step: Step, ctx: E
   }
   const task: Task = { seq: s.seq + 1, id, kind, mode }
   if (options) task.options = options
-  if (mode === 'type' && hasSharedMeaning(id)) task.firstLetter = true
   if (mode === 'explain' && e.senses > 1) task.context = true
   return { ...s, rng, seq: s.seq + 1, cur: task }
 }
@@ -355,8 +339,6 @@ export function nextTask(s0: Session, ctx: EngineCtx): Session {
 /** The easier MCQ used to relearn a failed mode before trying it again. */
 function relearnPath(failed: Mode): Step[] {
   switch (failed) {
-    case 'type':
-      return ['mcq-d2w', 'type']
     case 'explain':
       return ['mcq-w2d', 'explain']
     case 'mcq-blank':
@@ -367,8 +349,8 @@ function relearnPath(failed: Mode): Step[] {
 }
 
 function newWordGrade(x: Item): GradeValue {
-  if (x.fast) return x.typos || x.hints ? 3 : 4
-  return x.misses + (x.hints ? 1 : 0) >= 2 ? 2 : 3
+  if (x.fast) return 4
+  return x.misses >= 2 ? 2 : 3
 }
 
 /**
@@ -400,8 +382,6 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
     device: ctx.device,
     voided: 0,
   }
-  if (a.typo && ok) event.typo = 1
-  if (a.hint) event.hint = a.hint
   if (a.confusedWith && !ok) event.confusedWith = a.confusedWith
   if (a.answer) event.answer = a.answer.slice(0, 300)
   if (a.ms) event.ms = Math.round(Math.min(a.ms, 120_000))
@@ -411,14 +391,12 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
     if (task.mode === 'flash') {
       if (a.knew) {
         x.fast = true
-        x.path = ['flash', 'type']
+        x.path = [...FAST_LADDER]
       }
       x.i++
     } else if (ok) {
-      if (a.hint) x.hints++
-      if (a.typo) x.typos++
       if (x.kind === 'review' && !x.graded) {
-        event.grade = a.hint ? 2 : 3
+        event.grade = 3
         x.graded = true
       }
       x.i++
@@ -444,8 +422,9 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
         x.path = [...FULL_LADDER]
         x.i = 1
       } else {
-        const mcqAt = x.path.indexOf('mcq')
-        x.i = Math.max(mcqAt >= 0 ? mcqAt : 0, x.i - 1)
+        // One rung down, never back to the flashcard.
+        const floor = x.path[0] === 'flash' ? 1 : 0
+        x.i = Math.max(floor, x.i - 1)
       }
     }
 
@@ -462,7 +441,7 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
         s.sinceCheckpoint++
         if (s.sinceCheckpoint >= s.checkpointEvery) enterCheckpoint(s, 'new')
       } else if (x.kind === 'baseline' && x.misses === 0) {
-        event.grade = x.typos ? 3 : 4
+        event.grade = 4
       }
     }
   }
@@ -486,13 +465,10 @@ export function sessionProgress(s: Session): { done: number; total: number } {
     total += x.path.length
     done += x.done ? x.path.length : Math.min(x.i, x.path.length)
   }
-  for (const q of s.newQueue) total += q.carry ? 2 : 3
+  for (const q of s.newQueue) total += q.carry ? CARRY_LADDER.length : FULL_LADDER.length
   if (s.type === 'daily') {
     const sweepItems = s.pool.filter((x) => x.phase === 'sweep').length
-    const expected =
-      s.graduated.filter((g) => !g.fast).length +
-      s.pool.filter((x) => x.phase === 'new' && !x.done && !x.fast).length +
-      s.newQueue.length
+    const expected = s.graduated.length + s.pool.filter((x) => x.phase === 'new' && !x.done).length + s.newQueue.length
     total += Math.max(0, expected - sweepItems)
   }
   return { done, total: Math.max(total, 1) }

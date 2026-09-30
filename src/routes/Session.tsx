@@ -16,7 +16,6 @@ import { Card, TaskLabel } from './session/parts'
 import { ExplainTask } from './session/ExplainTask'
 import { FlashTask } from './session/FlashTask'
 import { McqTask } from './session/McqTask'
-import { TypeTask } from './session/TypeTask'
 
 export function SessionRoute() {
   const session = useStore((s) => s.session)
@@ -62,7 +61,6 @@ export function SessionRoute() {
   else if (task) {
     const fb = feedback && feedback.task.seq === task.seq ? feedback : null
     if (task.mode === 'flash') body = <FlashTask key={task.seq} task={task} />
-    else if (task.mode === 'type') body = <TypeTask key={task.seq} task={task} feedback={fb} />
     else if (task.mode === 'explain') body = <ExplainTask key={task.seq} task={task} />
     else body = <McqTask key={task.seq} task={task} feedback={fb} />
   }
