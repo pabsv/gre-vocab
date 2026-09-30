@@ -130,6 +130,17 @@ describe('engine: new words', () => {
       expect(Math.round((progress.get(id)!.due - T0) / DAY_MS)).toBe(1)
     }
   })
+  it('a Roughly sweep amends the day to Hard', () => {
+    const rough: Learner = (task, rng) => [
+      task.mode === 'flash' ? { correct: false, knew: false } : { correct: true, rough: task.kind === 'sweep' },
+      rng,
+    ]
+    const { events, progress } = run(newDay(ids.slice(0, 5)), rough, 9, T0)
+    for (const id of ids.slice(0, 5)) {
+      expect(events.some((e) => e.entryId === id && e.amend === 1 && e.grade === 2 && e.hint === 1)).toBe(true)
+      expect(Math.round((progress.get(id)!.due - T0) / DAY_MS)).toBeLessThanOrEqual(2)
+    }
+  })
 })
 
 describe('engine: reviews', () => {
@@ -153,6 +164,16 @@ describe('engine: reviews', () => {
     }
     expect(backToBack(day4.shown)).toBe(0)
     expect(day4.shown.every((t) => t.mode === 'explain' || t.mode.startsWith('mcq'))).toBe(true)
+  })
+
+  it('grades a Roughly review as Hard', () => {
+    const ids = ORDER.slice(0, 10)
+    const day1 = run(newDay(ids), perfect, 10, T0)
+    const later = T0 + 3 * DAY_MS
+    const session = createDailySession({ day: studyDay(later), now: later, dueIds: ids, newIds: [], carryIds: [], windowSize: 8 })
+    const rough: Learner = (task, rng) => [{ correct: true, rough: task.mode === 'explain' }, rng]
+    const day4 = run(session, rough, 11, later, day1.progress, day1.events)
+    for (const e of day4.events.filter((e) => e.grade)) expect(e.grade).toBe(e.mode === 'explain' ? 2 : 3)
   })
 
   it('shrinks new words when reviews eat the budget', () => {

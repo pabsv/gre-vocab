@@ -9,6 +9,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
       [['1', '2', '3', '4'], 'Pick a multiple choice option'],
       [['1', '←'], 'Knew it / right'],
       [['2', '→'], "Didn't know / wrong"],
+      [['3', '↓'], 'Roughly (got the gist)'],
       [['Space'], 'Continue after a miss'],
       [['P'], 'Pronounce'],
       [['M'], 'Auto pronounce on or off'],

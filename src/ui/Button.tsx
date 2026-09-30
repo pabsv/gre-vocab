@@ -1,13 +1,14 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { Kbd } from './Kbd'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'good' | 'bad'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'good' | 'warn' | 'bad'
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-accent text-accent-ink hover:brightness-110 active:brightness-95 shadow-sm',
   secondary: 'bg-surface text-ink border border-line-strong hover:bg-surface-2',
   ghost: 'text-ink-2 hover:text-ink hover:bg-surface-2',
   good: 'bg-good-soft text-good border border-good/30 hover:border-good/60',
+  warn: 'bg-warn-soft text-warn border border-warn/30 hover:border-warn/60',
   bad: 'bg-bad-soft text-bad border border-bad/30 hover:border-bad/60',
 }
 

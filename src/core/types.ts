@@ -29,6 +29,7 @@ export interface StudyEvent {
   /** 1 right, 0 wrong. For a flashcard: 1 "knew it", 0 "didn't know". */
   ok: 0 | 1
   typo?: 1
+  /** Partial credit: "Roughly" on explain (older events: a hint while typing). */
   hint?: number
   grade?: GradeValue
   /** Sweep result that replaces the day's grade. */

@@ -27,9 +27,9 @@ export function ExplainTask({ task }: { task: Task }) {
     setRevealed(true)
     inputRef.current?.blur()
   }
-  const grade = (ok: boolean) => {
+  const grade = (ok: boolean, rough = false) => {
     if (!revealed) return
-    submit({ correct: ok, answer: value.trim() || undefined, ms: elapsed() })
+    submit({ correct: ok, rough: rough || undefined, answer: value.trim() || undefined, ms: elapsed() })
   }
   const swipe = useSwipe(
     () => grade(false),
@@ -37,7 +37,7 @@ export function ExplainTask({ task }: { task: Task }) {
     revealed,
   )
 
-  // Same layout as the flashcard: Right (1, ←), Wrong (2, →).
+  // Same keys as the flashcard: Right (1, ←), Wrong (2, →); Roughly sits between them (3, ↓).
   useHotkeys({
     Space: reveal,
     Enter: reveal,
@@ -45,6 +45,8 @@ export function ExplainTask({ task }: { task: Task }) {
     ArrowLeft: () => grade(true),
     Digit2: () => grade(false),
     ArrowRight: () => grade(false),
+    Digit3: () => grade(true, true),
+    ArrowDown: () => grade(true, true),
   })
 
   return (
@@ -88,9 +90,12 @@ export function ExplainTask({ task }: { task: Task }) {
             </p>
           )}
           <Meaning entry={entry} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Button variant="good" size="lg" keys={['1']} onClick={() => grade(true)}>
               Right
+            </Button>
+            <Button variant="warn" size="lg" keys={['3']} onClick={() => grade(true, true)}>
+              Roughly
             </Button>
             <Button variant="bad" size="lg" keys={['2']} onClick={() => grade(false)}>
               Wrong

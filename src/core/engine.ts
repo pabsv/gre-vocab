@@ -18,6 +18,8 @@ export interface Item {
   readyAt: number
   order: number
   misses: number
+  /** Passes graded "Roughly": right gist, not the full meaning. */
+  roughs?: number
   /** "Knew it" on the flashcard: one check instead of the full ladder. */
   fast?: boolean
   /** A review already received its FSRS grade in this session. */
@@ -87,6 +89,8 @@ export interface Answer {
   correct: boolean
   /** Flashcard only: "Knew it". */
   knew?: boolean
+  /** Explain only: "Roughly", the gist but not the full meaning. Counts as a pass at Hard. */
+  rough?: boolean
   confusedWith?: string
   answer?: string
   ms?: number
@@ -382,6 +386,7 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
     device: ctx.device,
     voided: 0,
   }
+  if (a.rough && ok) event.hint = 1
   if (a.confusedWith && !ok) event.confusedWith = a.confusedWith
   if (a.answer) event.answer = a.answer.slice(0, 300)
   if (a.ms) event.ms = Math.round(Math.min(a.ms, 120_000))
@@ -395,9 +400,14 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
       }
       x.i++
     } else if (ok) {
+      if (a.rough) x.roughs = (x.roughs ?? 0) + 1
       if (x.kind === 'review' && !x.graded) {
-        event.grade = 3
+        event.grade = a.rough ? 2 : 3
         x.graded = true
+      } else if (x.kind === 'sweep' && a.rough) {
+        event.grade = 2
+        event.amend = 1
+        if (x.day) event.day = x.day
       }
       x.i++
     } else {
@@ -441,7 +451,7 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
         s.sinceCheckpoint++
         if (s.sinceCheckpoint >= s.checkpointEvery) enterCheckpoint(s, 'new')
       } else if (x.kind === 'baseline' && x.misses === 0) {
-        event.grade = 4
+        event.grade = x.roughs ? 3 : 4
       }
     }
   }

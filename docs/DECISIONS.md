@@ -23,8 +23,10 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
   | Fast-track, check passed | Easy |
   | New word, 0 or 1 miss, sweep passed | Good |
   | New word, 2+ misses | Hard |
+  | Sweep "Roughly" (amends the day's grade) | Hard |
   | Sweep failed (amends the day's grade) | Again |
   | Review correct | Good |
+  | Review "Roughly" | Hard |
   | Review wrong, then relearned in the same session | Again |
 
 * Reviews are explain the meaning (about 65%) or a sentence blank, shifted toward whichever is weaker for that word but never below 30% for either. Words without an example sentence always explain.
@@ -47,6 +49,6 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
 * Dictionary-desk look: headwords in Source Serif 4 with superscript sense numbers, UI in Schibsted Grotesk (the plan said Inter; swapped for more character), a highlighter mark on the word inside example sentences, warm paper light theme and ink dark theme.
 * One blue carries both accent and charts. Mastery uses an ordinal blue ramp, the heatmap a sequential blue, two-series charts blue and orange; all validated for both themes. Green, red and amber are reserved for answer feedback.
 * Keyboard first (keys matched by `e.code`), swipe and large targets on phones, the explain input with autocorrect and capitalisation off.
-* Self grading reads left to right: Knew it / Right is 1 and ←, Didn't know / Wrong is 2 and →, on both the flashcard and the sweep. M toggles auto pronounce. Space continues after any miss.
+* Self grading reads left to right: Knew it / Right is 1 and ←, Didn't know / Wrong is 2 and →, on both the flashcard and the sweep. Explain also has Roughly (3 and ↓, amber, in the middle) for the right gist and tone without the full meaning: a pass at Hard, so honest grading does not cost a failed word. It is stored in the event's `hint` field, which typing used before, so sync needed no migration. M toggles auto pronounce. Space continues after any miss.
 * No instructional copy or task labels on study cards (user feedback 2026-09-23): the header already says which phase you are in, and extra sentences slow reading.
 * Study screens must fit one laptop screen without scrolling (checked at 1536x730 against the longest entries).
