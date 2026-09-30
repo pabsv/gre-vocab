@@ -59,6 +59,8 @@ export interface Progress {
   missScore: number
   missAt: number | null
   lastMissDay: string | null
+  /** Study day of a finished new word whose final sweep has not happened yet (no sweep or review since). */
+  sweepDue: string | null
   confusions: Record<string, number>
   dir: Record<DirKey, [number, number]>
   known: boolean

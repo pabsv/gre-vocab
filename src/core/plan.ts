@@ -12,6 +12,11 @@ export interface DailyPlan {
   dueIds: string[]
   /** Words started earlier but never finished; they continue at the MCQ step. */
   carryIds: string[]
+  /**
+   * Finished new words that never got their final sweep (app closed, session ended or replaced,
+   * another device). Swept at the end of the next daily session; the sweep amends their grade day.
+   */
+  sweep: { id: string; day: string }[]
   /** Fresh words for today, after the target and the time budget. */
   newIds: string[]
   /** New words already started today. */
@@ -39,12 +44,14 @@ export function buildPlan(args: {
   const day = studyDay(now)
   const due: Progress[] = []
   const carryIds: string[] = []
+  const sweep: { id: string; day: string }[] = []
   let startedToday = 0
   let carriedIn = 0
   for (const p of progress.values()) {
     if (suspended.has(p.entryId) || !BY_ID.has(p.entryId)) continue
     if (p.card) {
       if (isDue(p, now)) due.push(p)
+      else if (p.sweepDue) sweep.push({ id: p.entryId, day: p.sweepDue })
     } else if (p.firstDay) {
       carryIds.push(p.entryId)
       if (p.firstDay !== day) carriedIn++
@@ -54,7 +61,7 @@ export function buildPlan(args: {
   due.sort((a, b) => a.due - b.due)
   const dueIds = due.map((p) => p.entryId)
 
-  const seconds = settings.budgetMin * 60 - dueIds.length * SEC_PER_REVIEW - carryIds.length * SEC_PER_NEW
+  const seconds = settings.budgetMin * 60 - (dueIds.length + sweep.length) * SEC_PER_REVIEW - carryIds.length * SEC_PER_NEW
   const fit = Math.max(0, Math.floor(seconds / SEC_PER_NEW))
   const targetLeft = Math.max(0, settings.newPerDay - startedToday - carriedIn)
   const allowed = newCount ?? Math.min(targetLeft, fit)
@@ -75,6 +82,6 @@ export function buildPlan(args: {
     }
   }
 
-  const estMinutes = Math.round((dueIds.length * SEC_PER_REVIEW + (carryIds.length + newIds.length) * SEC_PER_NEW) / 60)
-  return { day, dueIds, carryIds, newIds, startedToday, newTarget: settings.newPerDay, targetLeft, estMinutes }
+  const estMinutes = Math.round(((dueIds.length + sweep.length) * SEC_PER_REVIEW + (carryIds.length + newIds.length) * SEC_PER_NEW) / 60)
+  return { day, dueIds, carryIds, sweep, newIds, startedToday, newTarget: settings.newPerDay, targetLeft, estMinutes }
 }

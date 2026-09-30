@@ -15,6 +15,7 @@ Why the app works the way it does. Newest decisions at the bottom of each sectio
 * Ladder per new word, on day one: flashcard as a pretest, choose the meaning, then the sentence blank (choose the word from its meaning when the entry has no example), then explain the meaning. The explain step runs as a final sweep over the whole day's words, because a longer gap makes that recall worth more and it is the direction the GRE tests.
 * New words move through a sliding window of 8 (a new word enters when one graduates) instead of fixed rounds, so a round never ends in cramming the last two words. A recap checkpoint follows every 8 graduations.
 * "Knew it" on the flashcard fast-tracks a word: one sentence blank check graduates it as Easy. Fast-tracked words still get the final sweep, because a four-option check can be guessed; a failed sweep amends the grade to Again.
+* A sweep is never lost. A finished new word owes its sweep (`Progress.sweepDue`, derived from events) until a sweep or a graded review happens. The next daily session sweeps owed words at the end, next to that day's own, and the result amends the grade of the day the word was learned. This covers closing the app, the 04:00 rollover discarding a saved session, a drill replacing it and another device. Chosen over persisting more session state because events sync and sessions do not.
 * In the window a miss drops a word one rung (never back to the flashcard) and brings it back 2 cards later; a hit brings it back after 2, then 4 cards.
 * Grades into FSRS, one per word per study day:
 

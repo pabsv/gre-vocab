@@ -6,7 +6,7 @@ import { buildOrder } from '../core/order'
 import { studyDay } from '../core/time'
 import type { StudyEvent } from '../core/types'
 import { GreDb } from './db'
-import { addEvents, exportData, importData, loadState, mergeEvents, recordAnswer, voidEvent } from './repo'
+import { addEvents, ensureDerived, exportData, importData, loadState, mergeEvents, recordAnswer, voidEvent } from './repo'
 
 const f = makeScheduler(0.9, false)
 const T0 = new Date(2026, 8, 1, 9, 0, 0).getTime()
@@ -29,6 +29,20 @@ describe('repo', () => {
     expect(loaded.session?.cur).toEqual(s.cur)
     expect(loaded.progress.get(r.event.entryId)?.firstDay).toBe(ctx.day)
     expect(await db.events.count()).toBe(1)
+  })
+
+  it('rebuilds progress cached by an older derive once, keeping every event', async () => {
+    const db = freshDb()
+    const e = event({ grade: 3, mode: 'mcq-blank' })
+    const p = await recordAnswer(e, null, f, db)
+    const { sweepDue: _s, ...stale } = p
+    void _s
+    await db.progress.put(stale as typeof p)
+    const rebuilt = await ensureDerived(f, db)
+    expect(rebuilt?.get('abate')?.sweepDue).toBe(e.day)
+    expect((await loadState(db)).progress.get('abate')?.sweepDue).toBe(e.day)
+    expect(await db.events.count()).toBe(1)
+    expect(await ensureDerived(f, db)).toBeNull()
   })
 
   it('undo voids the event and re-derives progress', async () => {

@@ -1,5 +1,5 @@
 import type { FSRS } from 'ts-fsrs'
-import { derive } from '../core/derive'
+import { DERIVE_VERSION, derive } from '../core/derive'
 import type { Session } from '../core/engine'
 import type { Progress, StudyEvent } from '../core/types'
 import { db as defaultDb, type EventRow, type GreDb, type MetaRow } from './db'
@@ -93,6 +93,15 @@ export async function rebuildAll(f: FSRS, db: GreDb = defaultDb, only?: Iterable
     await db.progress.bulkPut([...out.values()])
     return out
   })
+}
+
+/** Rebuilds cached progress when it was derived by an older version. Returns null when current. */
+export async function ensureDerived(f: FSRS, db: GreDb = defaultDb): Promise<Map<string, Progress> | null> {
+  const row = await db.kv.get('deriveVersion')
+  if (row?.value === DERIVE_VERSION) return null
+  const out = await rebuildAll(f, db)
+  await db.kv.put({ key: 'deriveVersion', value: DERIVE_VERSION })
+  return out
 }
 
 export interface ExportFile {

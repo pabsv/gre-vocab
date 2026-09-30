@@ -195,6 +195,80 @@ describe('engine: reviews', () => {
   })
 })
 
+describe('engine: owed sweeps', () => {
+  /** Runs a day until the sweep would start, then abandons it (app closed, drill started, other device). */
+  function untilSweep(session: Session, now: number) {
+    const progress = new Map<string, Progress>()
+    const events: StudyEvent[] = []
+    let n = 0
+    const ctx: EngineCtx = { now, day: studyDay(now), device: 't', newId: () => `ow${String(n++).padStart(6, '0')}`, progress: (id) => progress.get(id) }
+    let s = session
+    for (let step = 0; step < 5000; step++) {
+      s = nextTask(s, ctx)
+      if (s.phase === 'checkpoint') {
+        s = continueSession(s)
+        continue
+      }
+      if (s.phase === 'sweep') break
+      const r = applyAnswer(s, perfect(s.cur!, 1)[0], ctx)
+      s = r.session
+      events.push(r.event)
+      progress.set(r.event.entryId, derive(r.event.entryId, events, f))
+    }
+    return { progress, events }
+  }
+
+  it('sweeps words whose sweep was skipped, amends their day and adds no new words', () => {
+    const ids = ORDER.slice(0, 10)
+    const day1 = untilSweep(newDay(ids), T0)
+    for (const id of ids) expect(day1.progress.get(id)!.sweepDue).toBe(studyDay(T0))
+
+    const later = T0 + 2 * 3600_000
+    const plan = buildPlan({ progress: day1.progress, order: ORDER, settings: { newPerDay: 10, budgetMin: 60 }, now: later, suspended: new Set() })
+    expect(plan.newIds).toEqual([])
+    expect(plan.dueIds).toEqual([])
+    expect(plan.sweep.map((x) => x.id).sort()).toEqual([...ids].sort())
+
+    const session = createDailySession({ day: plan.day, now: later, dueIds: [], newIds: [], carryIds: [], sweep: plan.sweep, windowSize: 8 })
+    expect(session.phase).toBe('sweep')
+    const miss = ids[0]
+    const learner: Learner = (task, rng) => [{ correct: !(task.id === miss && task.kind === 'sweep') }, rng]
+    const r = run(session, learner, 3, later, day1.progress, day1.events)
+    expect(r.finished).toBe(true)
+    const swept = r.shown.filter((t) => t.kind === 'sweep')
+    expect(swept.map((t) => t.id).sort()).toEqual([...ids].sort())
+    const amended = r.events.find((e) => e.entryId === miss && e.amend)!
+    expect(amended.grade).toBe(1)
+    expect(amended.day).toBe(studyDay(T0))
+    for (const id of ids) expect(r.progress.get(id)!.sweepDue).toBeNull()
+    expect(buildPlan({ progress: r.progress, order: ORDER, settings: { newPerDay: 10, budgetMin: 60 }, now: later, suspended: new Set() }).sweep).toEqual([])
+  })
+
+  it("merges owed sweeps with the day's own sweep without duplicates", () => {
+    const owed = ORDER.slice(0, 5)
+    const day1 = untilSweep(newDay(owed), T0)
+    const later = T0 + 3600_000
+    const plan = buildPlan({ progress: day1.progress, order: ORDER.slice(5), settings: { newPerDay: 10, budgetMin: 60 }, now: later, suspended: new Set(), newCount: 5 })
+    const session = createDailySession({ day: plan.day, now: later, dueIds: [], newIds: plan.newIds, carryIds: [], sweep: [...plan.sweep, ...plan.sweep], windowSize: 8 })
+    const r = run(session, perfect, 4, later, day1.progress, day1.events)
+    const swept = r.shown.filter((t) => t.kind === 'sweep').map((t) => t.id)
+    expect(new Set(swept).size).toBe(swept.length)
+    expect(swept.sort()).toEqual([...owed, ...plan.newIds].sort())
+  })
+
+  it('drops the debt once the word has been reviewed', () => {
+    const ids = ORDER.slice(0, 5)
+    const day1 = untilSweep(newDay(ids), T0)
+    const later = T0 + 3 * DAY_MS
+    const plan = buildPlan({ progress: day1.progress, order: ORDER, settings: { newPerDay: 0, budgetMin: 60 }, now: later, suspended: new Set() })
+    expect(plan.dueIds.sort()).toEqual([...ids].sort())
+    expect(plan.sweep).toEqual([])
+    const session = createDailySession({ day: plan.day, now: later, dueIds: plan.dueIds, newIds: [], carryIds: [], sweep: plan.sweep, windowSize: 8 })
+    const r = run(session, perfect, 5, later, day1.progress, day1.events)
+    for (const id of ids) expect(r.progress.get(id)!.sweepDue).toBeNull()
+  })
+})
+
 describe('engine: undo and list sessions', () => {
   it('undo restores the exact previous state', () => {
     const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 't', newId: () => 'x', progress: () => undefined }

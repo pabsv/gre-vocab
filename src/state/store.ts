@@ -115,7 +115,8 @@ export const useStore = create<State>()((set, get) => {
         session = null
         await repo.saveSession(null)
       }
-      set({ ready: true, deviceId, progress: loaded.progress, meta: loaded.meta, settings, session })
+      const progress = (await repo.ensureDerived(schedulerFor(settings.retention))) ?? loaded.progress
+      set({ ready: true, deviceId, progress, meta: loaded.meta, settings, session })
       applyTheme(settings.theme)
       if (session && !session.cur) set({ session: nextTask(session, get().ctx()) })
       void navigator.storage?.persist?.().catch(() => {})
@@ -146,7 +147,7 @@ export const useStore = create<State>()((set, get) => {
       if (newCount === undefined && st.session && st.session.type === 'daily' && st.session.day === day && st.session.phase !== 'done') return
       const plan = st.plan(newCount)
       const s = nextTask(
-        createDailySession({ day, now: t, dueIds: plan.dueIds, newIds: plan.newIds, carryIds: plan.carryIds, windowSize: st.settings.windowSize }),
+        createDailySession({ day, now: t, dueIds: plan.dueIds, newIds: plan.newIds, carryIds: plan.carryIds, sweep: plan.sweep, windowSize: st.settings.windowSize }),
         st.ctx(),
       )
       set({ session: s })

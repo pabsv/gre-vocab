@@ -66,6 +66,8 @@ export interface SessionCore {
   checkpointEvery: number
   sinceCheckpoint: number
   graduated: Graduate[]
+  /** Finished new words from earlier sessions still owed a sweep; they join this session's sweep. */
+  owedSweep?: { id: string; day: string }[]
   /** Entry ids shown on the checkpoint recap. */
   recap: string[]
   cur: Task | null
@@ -142,6 +144,7 @@ export function createDailySession(input: {
   dueIds: readonly string[]
   newIds: readonly string[]
   carryIds: readonly string[]
+  sweep?: readonly { id: string; day: string }[]
   windowSize: number
 }): Session {
   const s = baseSession('daily', input.day, input.now, input.windowSize)
@@ -150,7 +153,9 @@ export function createDailySession(input: {
   s.pool = reviews.map((id, k) => blankItem(id, 'review', 'review', ['recall'], k, k))
   s.nextOrder = reviews.length
   s.newQueue = [...input.carryIds.map((id) => ({ id, carry: true })), ...input.newIds.map((id) => ({ id, carry: false }))]
+  s.owedSweep = input.sweep?.map((x) => ({ ...x })) ?? []
   s.phase = s.pool.length ? 'review' : s.newQueue.length ? 'new' : 'done'
+  if (s.phase === 'done') startSweep(s)
   return s
 }
 
@@ -203,12 +208,17 @@ function enterCheckpoint(s: Session, resume: Phase) {
 
 function startSweep(s: Session) {
   const swept = new Set(s.pool.filter((x) => x.phase === 'sweep').map((x) => x.id))
-  const todo = s.graduated.filter((g) => !swept.has(g.id))
+  const todo: { id: string; day: string }[] = []
+  for (const g of [...s.graduated, ...(s.owedSweep ?? [])]) {
+    if (swept.has(g.id)) continue
+    swept.add(g.id)
+    todo.push(g)
+  }
   if (s.type !== 'daily' || !todo.length) {
     s.phase = 'done'
     return
   }
-  let order: Graduate[]
+  let order: { id: string; day: string }[]
   ;[order, s.rng] = shuffle(todo, s.rng)
   for (const [k, g] of order.entries()) {
     s.pool.push({ ...blankItem(g.id, 'sweep', 'sweep', ['explain'], s.t + k, s.nextOrder++), day: g.day })
@@ -478,7 +488,8 @@ export function sessionProgress(s: Session): { done: number; total: number } {
   for (const q of s.newQueue) total += q.carry ? CARRY_LADDER.length : FULL_LADDER.length
   if (s.type === 'daily') {
     const sweepItems = s.pool.filter((x) => x.phase === 'sweep').length
-    const expected = s.graduated.length + s.pool.filter((x) => x.phase === 'new' && !x.done).length + s.newQueue.length
+    const owed = (s.owedSweep ?? []).filter((o) => !s.graduated.some((g) => g.id === o.id)).length
+    const expected = s.graduated.length + owed + s.pool.filter((x) => x.phase === 'new' && !x.done).length + s.newQueue.length
     total += Math.max(0, expected - sweepItems)
   }
   return { done, total: Math.max(total, 1) }

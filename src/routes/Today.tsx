@@ -45,8 +45,8 @@ export function Today() {
     const next = d > 0 ? Math.floor(total / 5) * 5 + 5 : Math.ceil(total / 5) * 5 - 5
     setPicked(Math.max(0, Math.min(Math.max(0, fresh), next - plan.carryIds.length)))
   }
-  const work = plan.dueIds.length + newCount + plan.carryIds.length
-  const estMinutes = Math.round((plan.dueIds.length * SEC_PER_REVIEW + (plan.carryIds.length + newCount) * SEC_PER_NEW) / 60)
+  const work = plan.dueIds.length + plan.sweep.length + newCount + plan.carryIds.length
+  const estMinutes = Math.round(((plan.dueIds.length + plan.sweep.length) * SEC_PER_REVIEW + (plan.carryIds.length + newCount) * SEC_PER_NEW) / 60)
   const todayAct = activity.get(today)
   const streakDays = streak(activity, today)
   const introduced = ENTRIES.length - counts.new
@@ -98,7 +98,8 @@ export function Today() {
     const parts = []
     if (plan.dueIds.length) parts.push(plural(plan.dueIds.length, 'review'))
     if (newTotal) parts.push(plural(newTotal, 'new word'))
-    headline = parts.join(' and ')
+    if (plan.sweep.length) parts.push(`${plural(plan.sweep.length, 'word')} to wrap up`)
+    headline = parts.length > 2 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts.join(' and ')
   } else {
     headline = 'All caught up'
     if (todayAct) sub = `${plural(todayAct.answers, 'answer')} today, ${Math.round((todayAct.correct / Math.max(1, todayAct.answers)) * 100)}% right.`
@@ -135,7 +136,7 @@ export function Today() {
           )}
         </div>
 
-        {!resumable && (plan.dueIds.length > 0 || plan.carryIds.length > 0 || fresh > 0) && (
+        {!resumable && (plan.dueIds.length > 0 || plan.sweep.length > 0 || plan.carryIds.length > 0 || fresh > 0) && (
           <dl className="grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6">
             <Figure label="reviews" value={plan.dueIds.length} />
             <div>

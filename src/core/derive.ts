@@ -3,6 +3,9 @@ import { applyGrade } from './fsrs'
 import { DAY_MS } from './time'
 import type { DirKey, Mode, Progress, StudyEvent } from './types'
 
+/** Bump when `derive` or `Progress` changes; each device then rebuilds its cached progress once. */
+export const DERIVE_VERSION = 2
+
 /** Mistake weight halves every 14 days without new misses. */
 export const MISS_HALF_LIFE_MS = 14 * DAY_MS
 /** A clean correct answer shrinks the weight. */
@@ -21,6 +24,7 @@ export function emptyProgress(entryId: string): Progress {
     missScore: 0,
     missAt: null,
     lastMissDay: null,
+    sweepDue: null,
     confusions: {},
     dir: { explain: [0, 0], type: [0, 0], blank: [0, 0], mcq: [0, 0] },
     known: false,
@@ -84,6 +88,8 @@ export function derive(entryId: string, events: readonly StudyEvent[], f: FSRS, 
   let missScore = 0
   let scoreAt: number | null = null
   for (const e of list) {
+    if (e.kind === 'new' && e.grade && !e.amend) p.sweepDue = e.day
+    else if (e.kind === 'sweep' || e.kind === 'known' || e.grade) p.sweepDue = null
     if (e.kind === 'known' || (e.kind === 'baseline' && e.grade)) p.known = true
     if (p.firstDay === null && (e.kind === 'new' || e.kind === 'known' || e.grade)) p.firstDay = e.day
     if (e.kind === 'known' || e.kind === 'reset' || e.mode === 'flash' || e.mode === null) continue
