@@ -1,5 +1,5 @@
 import { Keyboard, Undo2, Volume2, VolumeX, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { sessionProgress, type Session as SessionState } from '../core/engine'
 import { getEntry } from '../data/words'
@@ -25,6 +25,13 @@ export function SessionRoute() {
   const updateSettings = useStore((s) => s.updateSettings)
   const navigate = useNavigate()
   const [sheet, setSheet] = useState(false)
+  // Brief note after toggling auto pronounce, so the M key has visible feedback.
+  const [speakNote, setSpeakNote] = useState<{ on: boolean; n: number } | null>(null)
+  useEffect(() => {
+    if (!speakNote) return
+    const t = setTimeout(() => setSpeakNote(null), 1400)
+    return () => clearTimeout(t)
+  }, [speakNote])
   useWakeLock(!!session)
 
   const lock = useSessionLock(!!session)
@@ -32,6 +39,7 @@ export function SessionRoute() {
   const toggleSpeak = () => {
     if (autoSpeak && canSpeak()) speechSynthesis.cancel()
     void updateSettings({ autoSpeak: !autoSpeak })
+    setSpeakNote((v) => ({ on: !autoSpeak, n: (v?.n ?? 0) + 1 }))
   }
   useHotkeys(
     {
@@ -77,6 +85,16 @@ export function SessionRoute() {
         onKeys={() => setSheet(true)}
       />
       <main className="flex flex-1 flex-col justify-center py-4">{body}</main>
+      {speakNote && (
+        <div
+          key={speakNote.n}
+          role="status"
+          className="anim-rise pointer-events-none fixed inset-x-0 bottom-8 z-40 mx-auto flex w-max items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink shadow-card"
+        >
+          {speakNote.on ? <Volume2 size={16} className="text-accent" /> : <VolumeX size={16} className="text-ink-3" />}
+          Auto pronounce {speakNote.on ? 'on' : 'off'}
+        </div>
+      )}
       {sheet && <ShortcutSheet onClose={() => setSheet(false)} />}
     </div>
   )

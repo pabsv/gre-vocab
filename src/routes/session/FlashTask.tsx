@@ -34,14 +34,12 @@ export function FlashTask({ task }: { task: Task }) {
     flipped,
   )
 
-  // Buttons read left to right: Knew it (1, ←), Didn't know (2, →).
+  // Buttons read left to right: Knew it (1), Didn't know (2).
   useHotkeys({
     Space: flip,
     Enter: flip,
     Digit1: () => rate(true),
-    ArrowLeft: () => rate(true),
     Digit2: () => rate(false),
-    ArrowRight: () => rate(false),
   })
 
   return (

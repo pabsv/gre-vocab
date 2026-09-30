@@ -37,16 +37,13 @@ export function ExplainTask({ task }: { task: Task }) {
     revealed,
   )
 
-  // Same keys as the flashcard: Right (1, ←), Wrong (2, →); Roughly sits between them (3, ↓).
+  // Same keys as the flashcard: Right (1), Wrong (2); Roughly (3).
   useHotkeys({
     Space: reveal,
     Enter: reveal,
     Digit1: () => grade(true),
-    ArrowLeft: () => grade(true),
     Digit2: () => grade(false),
-    ArrowRight: () => grade(false),
     Digit3: () => grade(true, true),
-    ArrowDown: () => grade(true, true),
   })
 
   return (
