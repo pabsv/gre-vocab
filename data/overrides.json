@@ -79,6 +79,9 @@
   "concede-v1": {
     "ex": "I concede. You win!"
   },
+  "mitigate-v1": {
+    "ex": "I can only spend so much time mitigating your disagreements with your wife, and at a certain point, you need to do it on your own."
+  },
   "simulacrum-n2": {
     "ex": "The early days of computer graphics made real people into a simulacrum that now seems comical."
   },
