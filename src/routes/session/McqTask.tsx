@@ -123,7 +123,7 @@ function Option({
   option: Entry
   target: Entry
   byWord: boolean
-  /** After a miss, also show the target's meaning (the prompt did not). */
+  /** Once picked, right or wrong, also show the target's meaning (the prompt did not). */
   explainTarget: boolean
   picked: string | null
   revealed: boolean
@@ -139,7 +139,7 @@ function Option({
     else if (isPicked) tone = 'border-bad/60 bg-bad-soft anim-shake'
     else tone = `border-line bg-surface hover:border-line-strong ${revealed ? '' : 'opacity-55'}`
   }
-  const explained = wrong && (isPicked || (isTarget && explainTarget))
+  const explained = picked !== null && ((isTarget && explainTarget) || (wrong && isPicked))
   const label = byWord ? option.word : 'this option'
   return (
     <li className="relative">
