@@ -56,8 +56,8 @@ export function SettingsRoute() {
         <Row label="Daily time budget" detail="Today starts at your daily target; this budget only applies when no session size is picked.">
           <Range value={settings.budgetMin} min={20} max={150} step={10} suffix=" min" onChange={(v) => set({ budgetMin: v })} />
         </Row>
-        <Row label="Words in play at once" detail="New words are juggled in a small window; a recap appears after this many.">
-          <Range value={settings.windowSize} min={5} max={12} step={1} onChange={(v) => set({ windowSize: v })} />
+        <Row label="Words in play at once" detail="Automatic. It grows when new words come back too easy and shrinks when you start missing them.">
+          <span className="tabular font-display text-2xl font-semibold text-ink">{settings.windowSize}</span>
         </Row>
         <Row label="GRE date" detail="Shows a countdown and warns when the pace is too slow.">
           <input
@@ -81,7 +81,7 @@ export function SettingsRoute() {
             ]}
           />
         </Row>
-        <Row label="Pronounce on reveal" detail="Speak the word when a new flashcard is flipped. P pronounces any time.">
+        <Row label="Auto pronounce" detail="Speak a new word when it appears and again when it is flipped. N pronounces any time.">
           <Toggle checked={settings.autoSpeak} onChange={(v) => set({ autoSpeak: v })} />
         </Row>
         <Row label="Target recall" detail="Higher means more reviews and firmer memory. 90% is the sweet spot for most learners.">

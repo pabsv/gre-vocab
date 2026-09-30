@@ -11,7 +11,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
       [['1'], 'Knew it / right'],
       [['2'], "Didn't know / wrong"],
       [['3'], 'Roughly (got the gist)'],
-      [['P'], 'Pronounce'],
+      [['N'], 'Pronounce'],
       [['M'], 'Auto pronounce on or off'],
       [['←'], 'Back to the last card (multiple choice)'],
       [['Backspace'], 'Back to the last card (any card)'],

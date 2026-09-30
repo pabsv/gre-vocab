@@ -1,4 +1,4 @@
-import { areSiblings, getEntry, type Entry } from '../data/words'
+import { areSiblings, getEntry, relatedIds, siblingsOf, type Entry } from '../data/words'
 import { pickOptions } from './distractors'
 import { hashSeed, pickOne, pickWeighted, shuffle, type Rng } from './rng'
 import type { GradeValue, ItemKind, Mode, Progress, Step, StudyEvent } from './types'
@@ -62,7 +62,12 @@ export interface SessionCore {
   resume: Phase | null
   pool: Item[]
   newQueue: { id: string; carry: boolean }[]
+  /** New words in play at once; adapts to recent accuracy (see `adaptWindow`). */
   windowSize: number
+  /** Last few answers on new words (1 right, 0 wrong), flashcards excluded. */
+  recent?: number[]
+  /** Answers on new words since the window last changed size. */
+  sinceResize?: number
   checkpointEvery: number
   sinceCheckpoint: number
   graduated: Graduate[]
@@ -107,6 +112,22 @@ const FULL_LADDER: Step[] = ['flash', 'mcq-w2d', 'check']
 const CARRY_LADDER: Step[] = ['mcq-w2d', 'check']
 const FAST_LADDER: Step[] = ['flash', 'check']
 
+/** Recap after this many graduations, whatever the window size. */
+export const CHECKPOINT_EVERY = 8
+/** Bounds of the adaptive window of new words in play. */
+export const WINDOW_MIN = 4
+export const WINDOW_MAX = 12
+export const WINDOW_DEFAULT = 8
+/** Accuracy over the last ADAPT_SPAN answers that grows or shrinks the window. */
+const ADAPT_SPAN = 12
+const ADAPT_EVERY = 8
+const GROW_AT = 0.9
+const SHRINK_BELOW = 0.7
+/** How far down the queue to look for a word with no synonym in play. */
+const SYN_LOOKAHEAD = 8
+
+export const clampWindow = (n: number) => Math.min(WINDOW_MAX, Math.max(WINDOW_MIN, Math.round(n) || WINDOW_DEFAULT))
+
 function blankItem(id: string, kind: ItemKind, phase: WorkPhase, path: Step[], readyAt: number, order: number): Item {
   return { id, kind, phase, path, i: 0, readyAt, order, misses: 0 }
 }
@@ -126,8 +147,10 @@ function baseSession(type: SessionType, day: string, now: number, windowSize: nu
     resume: null,
     pool: [],
     newQueue: [],
-    windowSize,
-    checkpointEvery: windowSize,
+    windowSize: clampWindow(windowSize),
+    recent: [],
+    sinceResize: 0,
+    checkpointEvery: CHECKPOINT_EVERY,
     sinceCheckpoint: 0,
     graduated: [],
     recap: [],
@@ -189,14 +212,51 @@ function isStale(x: Item, ctx: EngineCtx): boolean {
   return false
 }
 
-function admit(s: Session) {
-  let live = s.pool.filter((x) => x.phase === 'new' && !x.done).length
-  while (live < s.windowSize && s.newQueue.length) {
-    const [q, ...rest] = s.newQueue
-    s.newQueue = rest
-    s.pool.push(blankItem(q.id, 'new', 'new', q.carry ? [...CARRY_LADDER] : [...FULL_LADDER], s.t, s.nextOrder++))
-    live++
+/** A word and its sibling senses, which enter together. */
+const senseGroup = (id: string) => [id, ...siblingsOf(id).map((e) => e.id)]
+
+/** True when any sense of this word shares meaning with a word already in play. */
+function clashes(id: string, live: ReadonlySet<string>): boolean {
+  for (const a of senseGroup(id)) {
+    for (const r of relatedIds(a)) if (live.has(r)) return true
+    for (const l of live) if (relatedIds(l).has(a)) return true
   }
+  return false
+}
+
+/**
+ * Fills the window from the queue. Near synonyms learned side by side interfere, so a word
+ * whose meaning overlaps one in play waits while a later word (within SYN_LOOKAHEAD) goes first.
+ */
+function admit(s: Session) {
+  const live = new Set(s.pool.filter((x) => x.phase === 'new' && !x.done).map((x) => x.id))
+  while (live.size < s.windowSize && s.newQueue.length) {
+    const reach = Math.min(s.newQueue.length, SYN_LOOKAHEAD)
+    let k = 0
+    while (k < reach && clashes(s.newQueue[k].id, live)) k++
+    if (k === reach) k = 0
+    const [q] = s.newQueue.splice(k, 1)
+    s.pool.push(blankItem(q.id, 'new', 'new', q.carry ? [...CARRY_LADDER] : [...FULL_LADDER], s.t, s.nextOrder++))
+    live.add(q.id)
+  }
+}
+
+/**
+ * Staircase on the window of new words. Recall that almost always succeeds means the word came
+ * back too soon to be worth much, so another word joins and gaps stretch; frequent misses mean
+ * overload, so no word joins until the window is smaller. Acts at most every ADAPT_EVERY answers.
+ */
+function adaptWindow(s: Session, ok: boolean) {
+  const recent = [...(s.recent ?? []), ok ? 1 : 0].slice(-ADAPT_SPAN)
+  s.recent = recent
+  s.sinceResize = (s.sinceResize ?? 0) + 1
+  if (s.sinceResize < ADAPT_EVERY || recent.length < ADAPT_EVERY) return
+  const acc = recent.reduce((a, b) => a + b, 0) / recent.length
+  const size = acc >= GROW_AT ? s.windowSize + 1 : acc < SHRINK_BELOW ? s.windowSize - 1 : s.windowSize
+  const next = Math.min(WINDOW_MAX, Math.max(WINDOW_MIN, size))
+  if (next === s.windowSize) return
+  s.windowSize = next
+  s.sinceResize = 0
 }
 
 function enterCheckpoint(s: Session, resume: Phase) {
@@ -403,6 +463,7 @@ export function applyAnswer(s0: Session, a: Answer, ctx: EngineCtx): { session: 
 
   const x = task.kind === 'filler' ? undefined : s.pool.find((p) => p.id === task.id && !p.done && p.phase === s0.phase)
   if (x) {
+    if (x.phase === 'new' && task.mode !== 'flash') adaptWindow(s, ok)
     if (task.mode === 'flash') {
       if (a.knew) {
         x.fast = true

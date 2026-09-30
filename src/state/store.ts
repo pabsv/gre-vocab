@@ -74,6 +74,8 @@ interface State {
   undo: () => void
   continueCheckpoint: () => void
   endSession: () => void
+  /** Stores the adaptive window size so the next session starts from it. */
+  rememberWindow: (s: Session) => void
   updateSettings: (patch: Partial<Settings>) => Promise<void>
   setMetaValue: (key: string, value: unknown) => Promise<void>
   markKnown: (id: string) => Promise<void>
@@ -169,6 +171,7 @@ export const useStore = create<State>()((set, get) => {
       const { session: applied, event } = applyAnswer(session, answer, ctx)
       const next = nextTask(applied, ctx)
       set({ session: next })
+      get().rememberWindow(next)
       repo
         .recordAnswer(event, next, schedulerFor(settings.retention))
         .then((p) => {
@@ -184,6 +187,7 @@ export const useStore = create<State>()((set, get) => {
       const r = undoLast(session)
       if (!r) return
       set({ session: r.session })
+      get().rememberWindow(r.session)
       repo
         .voidEvent(r.eventId, r.session, schedulerFor(settings.retention))
         .then((p) => {
@@ -204,6 +208,11 @@ export const useStore = create<State>()((set, get) => {
     endSession: () => {
       set({ session: null })
       repo.saveSession(null).catch(fail)
+    },
+
+    rememberWindow: (s) => {
+      // The next daily session starts at the size this one settled on.
+      if (s.type === 'daily' && s.windowSize !== get().settings.windowSize) void get().updateSettings({ windowSize: s.windowSize })
     },
 
     updateSettings: async (patch) => {

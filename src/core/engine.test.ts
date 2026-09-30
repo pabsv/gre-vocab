@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { areSiblings, getEntry } from '../data/words'
+import { areSiblings, ENTRIES, getEntry, relatedIds, siblingsOf } from '../data/words'
 import { derive } from './derive'
 import {
   applyAnswer,
+  CHECKPOINT_EVERY,
+  WINDOW_MAX,
+  WINDOW_MIN,
   continueSession,
   createDailySession,
   createListSession,
@@ -68,8 +71,8 @@ function run(session: Session, learner: Learner, seed: Rng, now: number, progres
   return { s, events, shown, finished: false, progress }
 }
 
-function newDay(ids: string[], now = T0) {
-  return createDailySession({ day: studyDay(now), now, dueIds: [], newIds: ids, carryIds: [], windowSize: 8 })
+function newDay(ids: string[], now = T0, windowSize = 8) {
+  return createDailySession({ day: studyDay(now), now, dueIds: [], newIds: ids, carryIds: [], windowSize })
 }
 
 const backToBack = (shown: Task[]) => shown.filter((t, k) => k > 0 && shown[k - 1].id === t.id).length
@@ -140,6 +143,72 @@ describe('engine: new words', () => {
       expect(events.some((e) => e.entryId === id && e.amend === 1 && e.grade === 2 && e.hint === 1)).toBe(true)
       expect(Math.round((progress.get(id)!.due - T0) / DAY_MS)).toBeLessThanOrEqual(2)
     }
+  })
+})
+
+describe('engine: window of new words', () => {
+  const ids = ORDER.slice(0, 40)
+  const liveNew = (s: Session) => s.pool.filter((x) => x.phase === 'new' && !x.done).map((x) => x.id)
+
+  it('grows when every recall succeeds, up to the maximum', () => {
+    const { s } = run(newDay(ids), perfect, 1, T0)
+    expect(s.windowSize).toBeGreaterThan(8)
+    expect(s.windowSize).toBeLessThanOrEqual(WINDOW_MAX)
+  })
+
+  it('shrinks to the minimum when half the answers miss', () => {
+    const { s, finished } = run(newDay(ids), shaky(0.5), 7, T0)
+    expect(finished).toBe(true)
+    expect(s.windowSize).toBe(WINDOW_MIN)
+  })
+
+  it('never has more new words in play than the window allows', () => {
+    let s = newDay(ids, T0, 30)
+    expect(s.windowSize).toBe(WINDOW_MAX)
+    const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 't', newId: () => crypto.randomUUID(), progress: () => undefined }
+    let rng: Rng = 3
+    for (let k = 0; k < 400 && s.phase !== 'done'; k++) {
+      s = nextTask(s, ctx)
+      if (s.phase === 'checkpoint') {
+        s = continueSession(s)
+        continue
+      }
+      if (!s.cur) break
+      expect(liveNew(s).length).toBeLessThanOrEqual(WINDOW_MAX)
+      let a: Answer
+      ;[a, rng] = shaky(0.2)(s.cur, rng)
+      s = applyAnswer(s, a, ctx).session
+    }
+  })
+
+  it('recaps every 8 graduations whatever the window size', () => {
+    for (const size of [4, 12]) {
+      let s = newDay(ids.slice(0, 20), T0, size)
+      const ctx: EngineCtx = { now: T0, day: studyDay(T0), device: 't', newId: () => crypto.randomUUID(), progress: () => undefined }
+      const recaps: number[] = []
+      for (let k = 0; k < 1000 && s.phase !== 'done'; k++) {
+        s = nextTask(s, ctx)
+        if (s.phase === 'checkpoint') {
+          recaps.push(s.recap.length)
+          s = continueSession(s)
+          continue
+        }
+        if (!s.cur) break
+        s = applyAnswer(s, perfect(s.cur, 0)[0], ctx).session
+      }
+      expect(recaps).toEqual([CHECKPOINT_EVERY, CHECKPOINT_EVERY, 4])
+    }
+  })
+
+  it('keeps a near synonym out of the window while its partner is in play', () => {
+    const a = ENTRIES.find((e) => e.syn?.length && siblingsOf(e.id).length === 0)!
+    const b = a.syn![0]
+    const near = new Set([a.id, b, ...relatedIds(a.id), ...relatedIds(b)])
+    const fillers = ORDER.filter((id) => !near.has(id) && ![...near].some((n) => areSiblings(n, id) || relatedIds(id).has(n))).slice(0, 12)
+    const s = nextTask(newDay([a.id, b, ...fillers]), { now: T0, day: studyDay(T0), device: 't', newId: () => 'x', progress: () => undefined })
+    expect(liveNew(s)).toContain(a.id)
+    expect(liveNew(s)).not.toContain(b)
+    expect(s.newQueue[0].id).toBe(b)
   })
 })
 

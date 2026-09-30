@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Task } from '../../core/engine'
 import { getEntry } from '../../data/words'
 import { useHotkeys } from '../../lib/hotkeys'
@@ -18,6 +18,12 @@ export function FlashTask({ task }: { task: Task }) {
   const autoSpeak = useStore((s) => s.settings.autoSpeak)
   const elapsed = useElapsed()
   const [flipped, setFlipped] = useState(false)
+
+  // Pronounce on arrival, then again on flip. Settings are read at arrival only,
+  // so toggling auto pronounce mid card does not replay the word.
+  useEffect(() => {
+    if (useStore.getState().settings.autoSpeak) speak(entry.word)
+  }, [entry.word])
 
   const flip = () => {
     if (flipped) return

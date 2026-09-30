@@ -39,7 +39,7 @@ export function Headword({
             onClick={() => speak(entry.word)}
             className="-m-1.5 rounded-lg p-1.5 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
             aria-label={`Pronounce ${entry.word}`}
-            title="Pronounce (P)"
+            title="Pronounce (N)"
           >
             <Volume2 size={18} />
           </button>

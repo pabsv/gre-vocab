@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import { getEntry } from '../../data/words'
 import { useHotkeys } from '../../lib/hotkeys'
 import { useStore } from '../../state/store'
@@ -8,6 +9,7 @@ import { Card, TaskLabel } from './parts'
 export function Checkpoint() {
   const session = useStore((s) => s.session)
   const next = useStore((s) => s.continueCheckpoint)
+  const navigate = useNavigate()
   useHotkeys({ Enter: next, Space: next })
   if (!session) return null
   const misses = new Map(session.graduated.map((g) => [g.id, g.misses]))
@@ -28,9 +30,15 @@ export function Checkpoint() {
           </li>
         ))}
       </ul>
-      <Button variant="primary" size="lg" keys={['Enter']} onClick={next} className="mt-6">
-        Continue
-      </Button>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Button variant="primary" size="lg" keys={['Enter']} onClick={next}>
+          Continue
+        </Button>
+        {/* Stopping loses nothing: unfinished words carry over and owed sweeps run next session. */}
+        <Button variant="secondary" size="lg" keys={['Esc']} onClick={() => navigate('/')}>
+          Stop here
+        </Button>
+      </div>
     </Card>
   )
 }

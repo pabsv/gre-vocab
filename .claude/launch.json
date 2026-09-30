@@ -11,6 +11,17 @@
       "port": 5174
     },
     {
+      "name": "gre-vocab-dev-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
       "name": "gre-vocab-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

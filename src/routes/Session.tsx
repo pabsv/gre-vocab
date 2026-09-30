@@ -45,7 +45,7 @@ export function SessionRoute() {
       Escape: () => (sheet ? setSheet(false) : navigate('/')),
       'Mod+KeyZ': () => !lock.blocked && undo(),
       Backspace: () => !lock.blocked && undo(),
-      KeyP: () => task && speak(getEntry(task.id).word),
+      KeyN: () => task && speak(getEntry(task.id).word),
       KeyM: toggleSpeak,
       'Shift+Slash': () => setSheet((v) => !v),
     },
@@ -154,7 +154,12 @@ function SessionHeader({
         >
           <X size={20} />
         </button>
-        <p className="tabular flex-1 truncate text-sm text-ink-2">{phaseLine(session)}</p>
+        <p className="tabular flex-1 truncate text-sm text-ink-2">
+          {phaseLine(session)}
+          {(session.phase === 'new' || session.phase === 'checkpoint') && (
+            <span className="hidden sm:inline"> · {session.pool.filter((x) => x.phase === 'new' && !x.done).length} in play</span>
+          )}
+        </p>
         {canSpeak() && (
           <button
             type="button"
