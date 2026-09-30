@@ -77,7 +77,7 @@ export function McqTask({ task }: { task: Task }) {
           <p className="font-display italic text-ink-3">{entry.pos}</p>
         </div>
       )}
-      {task.mode === 'mcq-blank' && <Example entry={entry} blank className="text-[clamp(1.25rem,3.4vw,1.6rem)] leading-relaxed text-ink" />}
+      {task.mode === 'mcq-blank' && <Example entry={entry} index={task.ex} blank className="text-[clamp(1.25rem,3.4vw,1.6rem)] leading-relaxed text-ink" />}
 
       <ol className="mt-6 grid gap-2.5">
         {options.map((o, k) => (
@@ -98,7 +98,7 @@ export function McqTask({ task }: { task: Task }) {
 
       {picked && (
         <div className="anim-fade mt-5 flex flex-col gap-4">
-          {wrong && task.mode !== 'mcq-blank' && entry.ex && <Example entry={entry} className="leading-relaxed text-ink-2" />}
+          {wrong && task.mode !== 'mcq-blank' && <Example entry={entry} className="leading-relaxed text-ink-2" />}
           <Button variant="primary" keys={['Space']} onClick={commit} className="self-start">
             Continue
           </Button>

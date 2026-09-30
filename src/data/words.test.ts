@@ -18,7 +18,10 @@ describe('words.json', () => {
   it('has symmetric synonym links and valid spans', () => {
     for (const e of ENTRIES) {
       for (const s of relatedIds(e.id)) expect(relatedIds(s).has(e.id)).toBe(true)
-      if (e.exSpan && e.ex) expect(e.exSpan[1]).toBeLessThanOrEqual(e.ex.length)
+      for (const x of e.exs ?? []) {
+        expect(x.span[1]).toBeLessThanOrEqual(x.t.length)
+        expect(x.t.slice(x.span[0], x.span[1])).toMatch(/^[A-Za-z][A-Za-z' -]*[a-z]$/)
+      }
       expect(e.def).not.toMatch(/&[a-z#0-9]+;/)
     }
   })

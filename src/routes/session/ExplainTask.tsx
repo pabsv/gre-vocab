@@ -41,8 +41,8 @@ export function ExplainTask({ task }: { task: Task }) {
   return (
     <Card {...swipe}>
       <Headword entry={entry} size={revealed ? 'lg' : 'xl'} />
-      {task.context && entry.ex && (
-        <Example entry={entry} className="mt-5 text-lg leading-relaxed text-ink-2" />
+      {task.context && (
+        <Example entry={entry} index={task.ex} className="mt-5 text-lg leading-relaxed text-ink-2" />
       )}
 
       {!revealed ? (

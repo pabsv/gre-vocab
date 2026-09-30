@@ -16,6 +16,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'data' / 'magoosh-1000.apkg'
 OVERRIDES = ROOT / 'data' / 'overrides.json'
+# Extra example sentences keyed by entry id; src is 'ebook' (Magoosh vocab eBook) or 'gen' (written for this app).
+EXAMPLES = ROOT / 'data' / 'examples.json'
 OUT = ROOT / 'src' / 'data' / 'words.json'
 
 # Magoosh section boundaries hidden in the "Frequency" field (alphabetical inside each section).
@@ -189,6 +191,8 @@ def main():
     src = Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
     notes = load_notes(src)
     overrides = json.loads(OVERRIDES.read_text(encoding='utf-8')) if OVERRIDES.exists() else {}
+    extra = json.loads(EXAMPLES.read_text(encoding='utf-8')) if EXAMPLES.exists() else {}
+    extra.pop('_comment', None)
     report = defaultdict(list)
 
     raw = []
@@ -289,6 +293,13 @@ def main():
                 report['example without a findable headword'].append(f"{r['id']}: {r['ex'][:70]}")
         else:
             report['no example'].append(r['id'])
+        r['exs'] = [{'t': r['ex'], 'span': r['exSpan'], 'src': 'magoosh'}] if r['ex'] and r['exSpan'] else []
+        for x in extra.get(r['id'], []):
+            i = x['text'].find(x['form'])
+            if i < 0 or x['text'].count(x['form']) != 1 or not token_matches(x['form'], r['head']) and not x['form'].lower().startswith(r['head'].lower()[:4]):
+                report['extra example with a bad form'].append(f"{r['id']}: {x['form']!r} in {x['text'][:60]}")
+                continue
+            r['exs'].append({'t': x['text'], 'span': [i, i + len(x['form'])], 'src': x['src']})
         md = r.get('defMasked') or mask(r['def'], r['head'])
         if md:
             r['defMasked'] = md
@@ -358,12 +369,12 @@ def main():
             r['look'] = lk
 
     raw.sort(key=lambda r: r['rank'])
-    keys = ['id', 'word', 'label', 'sense', 'senses', 'pos', 'def', 'defMasked', 'ex', 'exSpan', 'note', 'tier',
+    keys = ['id', 'word', 'label', 'sense', 'senses', 'pos', 'def', 'defMasked', 'exs', 'note', 'tier',
             'rank', 'syn', 'near', 'look']
     entries = []
     for r in raw:
         r['word'] = r['head']
-        entries.append({k: r[k] for k in keys if r.get(k) is not None})
+        entries.append({k: r[k] for k in keys if r.get(k) not in (None, [])})
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text('[\n' + ',\n'.join(json.dumps(e, ensure_ascii=False) for e in entries) + '\n]\n', encoding='utf-8')

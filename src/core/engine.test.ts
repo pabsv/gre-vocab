@@ -98,7 +98,7 @@ describe('engine: new words', () => {
     const { finished, events, shown } = run(newDay(ids), knowsAll, 2, T0)
     expect(finished).toBe(true)
     for (const id of ids) {
-      expect(shown.filter((t) => t.id === id && t.kind !== 'filler').map((t) => t.mode)).toEqual(['flash', getEntry(id).exSpan ? 'mcq-blank' : 'mcq-d2w', 'explain'])
+      expect(shown.filter((t) => t.id === id && t.kind !== 'filler').map((t) => t.mode)).toEqual(['flash', getEntry(id).exs?.length ? 'mcq-blank' : 'mcq-d2w', 'explain'])
       expect(events.find((e) => e.entryId === id && e.grade)?.grade).toBe(4)
     }
   })

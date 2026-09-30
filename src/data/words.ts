@@ -3,6 +3,16 @@ import raw from './words.json'
 export type Tier = 'common' | 'basic' | 'advanced'
 export type Pos = 'adjective' | 'verb' | 'noun' | 'adverb'
 
+/** Where a sentence comes from: the Magoosh flashcard, the Magoosh vocab eBook, or written for this app. */
+export type ExampleSrc = 'magoosh' | 'ebook' | 'gen'
+
+export interface ExampleSentence {
+  t: string
+  /** Character range of the headword (possibly inflected) inside `t`. */
+  span: [number, number]
+  src: ExampleSrc
+}
+
 export interface Entry {
   id: string
   word: string
@@ -14,9 +24,8 @@ export interface Entry {
   def: string
   /** Definition with the headword blanked, for prompts that ask for the word. */
   defMasked?: string
-  ex?: string
-  /** Character range of the headword (possibly inflected) inside `ex`. */
-  exSpan?: [number, number]
+  /** Example sentences, the Magoosh flashcard one first. */
+  exs?: ExampleSentence[]
   note?: string
   tier: Tier
   /** Magoosh list position: Common 1 to 323, Basic 324 to 699, Advanced 700 to 1066. */

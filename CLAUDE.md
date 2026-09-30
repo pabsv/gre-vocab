@@ -5,7 +5,7 @@ Personal trainer for the Magoosh 1000 GRE words. Vite 8, React 19, TS, Tailwind 
 ## Commands
 
 * `npm run dev` (port 5174), `npm test`, `npm run lint`, `npm run build`, `npm run preview` (port 4174, service worker active)
-* `npm run words` rebuilds `src/data/words.json` from `data/magoosh-1000.apkg` and prints a cleaning report. Fix data in `data/overrides.json`, never by hand in `words.json`.
+* `npm run words` rebuilds `src/data/words.json` from `data/magoosh-1000.apkg` and prints a cleaning report. Fix data in `data/overrides.json`, never by hand in `words.json`. Extra example sentences live in `data/examples.json`, tagged `src` (`ebook` or `gen`).
 * `npx pwa-assets-generator` regenerates icons from `public/icon.svg`.
 
 ## Rules and gotchas

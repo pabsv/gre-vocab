@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { BY_WORD, getEntry, lookalikesOf, type Entry } from '../data/words'
 import { useStore } from '../state/store'
-import { Example } from './Example'
+import { Examples } from './Example'
 
 /** The answer side: definition, example, note, related words and your memory hook. */
 export function Meaning({
@@ -23,7 +23,7 @@ export function Meaning({
   return (
     <div className="flex flex-col gap-3">
       {showDef && <p className={`font-display leading-snug text-ink ${compact ? 'text-xl' : 'text-[clamp(1.3rem,3.4vw,1.6rem)]'}`}>{entry.def}</p>}
-      <Example entry={entry} className={`leading-relaxed text-ink-2 ${compact ? 'text-base' : 'text-lg'}`} />
+      <Examples entry={entry} className={`leading-relaxed text-ink-2 ${compact ? 'text-base' : 'text-lg'}`} />
       {hook && (
         <p className="rounded-xl border border-warn/30 bg-warn-soft px-4 py-2.5 text-[0.95rem] text-ink">
           <span className="small-caps mr-2 text-warn">memory hook</span>

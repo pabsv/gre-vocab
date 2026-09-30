@@ -1,6 +1,6 @@
 import { areSiblings, getEntry, relatedIds, siblingsOf, type Entry } from '../data/words'
 import { pickOptions } from './distractors'
-import { hashSeed, pickOne, pickWeighted, shuffle, type Rng } from './rng'
+import { hashSeed, pickOne, pickWeighted, randInt, shuffle, type Rng } from './rng'
 import type { GradeValue, ItemKind, Mode, Progress, Step, StudyEvent } from './types'
 
 export type SessionType = 'daily' | 'drill' | 'test' | 'baseline'
@@ -38,6 +38,8 @@ export interface Task {
   options?: string[]
   /** Show this sense's example as context (multi-sense words in explain mode). */
   context?: boolean
+  /** Index into the entry's example sentences, for the blank and the context. */
+  ex?: number
 }
 
 export interface Graduate {
@@ -311,7 +313,7 @@ export function continueSession(s0: Session): Session {
   return s
 }
 
-const hasBlank = (e: Entry) => !!(e.ex && e.exSpan)
+const hasBlank = (e: Entry) => !!e.exs?.length
 
 const ratio = ([ok, n]: [number, number]) => (ok + 1) / (n + 2)
 
@@ -365,7 +367,9 @@ function withTask(s: Session, id: string, kind: Task['kind'], step: Step, ctx: E
   }
   const task: Task = { seq: s.seq + 1, id, kind, mode }
   if (options) task.options = options
-  if (mode === 'explain' && e.senses > 1) task.context = true
+  if (mode === 'explain' && e.senses > 1 && hasBlank(e)) task.context = true
+  // A different sentence each time, so the word is learned rather than one sentence.
+  if ((mode === 'mcq-blank' || task.context) && e.exs!.length > 1) [task.ex, rng] = randInt(e.exs!.length, rng)
   return { ...s, rng, seq: s.seq + 1, cur: task }
 }
 

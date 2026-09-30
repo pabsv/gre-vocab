@@ -100,5 +100,93 @@
   },
   "supercilious": {
     "ex": "Nelly felt the Quiz Bowl director acted superciliously towards the underclassmen; really, she fumed, must he act so preternaturally omniscient each time he intones some obscure fact, as though everybody knows that Mt. Aconcagua is the highest peak in South America?"
+  },
+  "jingoist": {
+    "ex": "In the days leading up to war, a nation typically breaks up into the two opposing camps: doves, who do their best to avoid war, and jingoists, who are only too eager to wave national flags from their vehicles and vehemently denounce those who do not do the same."
+  },
+  "serendipity": {
+    "ex": "The invention of the 3M Post It Note was serendipitous, because the scientist who had come up with the idea was looking for a strong adhesive; the weak adhesive he came up with was perfect for holding a piece of paper in place but made it very easy for someone to pull the paper free."
+  },
+  "catholic": {
+    "ex": "Jonah's friends said that Jonah's taste in music was eclectic; Jonah was quick to point out that not only was his taste eclectic but it was also catholic: he enjoyed music from countries as far-flung as Mali and Mongolia."
+  },
+  "misanthrope": {
+    "ex": "Hamilton had been deceived so many times in his life that he hid behind the gruff exterior of a misanthrope, lambasting perfect strangers for no apparent reason."
+  },
+  "profuse": {
+    "ex": "During mile 20 of the Hawaii Marathon, Dwayne was sweating so profusely that he stopped to take off his shirt, and ran the remaining six miles wearing nothing more than skimpy shorts."
+  },
+  "sedulous": {
+    "ex": "An avid numismatist, Harold sedulously amassed a collection of coins from over 100 countries--an endeavor that took over fifteen years and trips to five continents."
+  },
+  "pugnacious": {
+    "ex": "The comedian told one flat joke after another, and when the audience started booing, he pugnaciously spat back at them, \"Hey, you think this is easy -- why don't you buffoons give it a shot?\""
+  },
+  "derivative": {
+    "ex": "Although the movies were utterly derivative of other popular movies, they did well at the box office.",
+    "def": "(of a creative product, e.g. music or writing) not original; drawing on the work of another person"
+  },
+  "discursive": {
+    "ex": "Many readers find it tough to read Moby Dick since the author is discursive, often cutting the action short to spend 20 pages on the history of a whale.",
+    "def": "(of speech or writing) tending to depart from the main point"
+  },
+  "ascribe": {
+    "ex": "History ascribes The Odyssey and The Iliad to Homer, but scholars now debate whether he was a historical figure or a fictitious name."
+  },
+  "aplomb": {
+    "ex": "Nancy acted with aplomb during dangerous situations--she once calmly climbed up an oak tree to save a cat."
+  },
+  "inadvertent": {
+    "ex": "Although Prohibition was rooted in noble ideals, the inadvertent and costly consequences of making alcohol illegal in the U.S. led to its repeal."
+  },
+  "obtain": {
+    "pos": "verb"
+  },
+  "vituperate": {
+    "pos": "verb"
+  },
+  "undermine": {
+    "pos": "verb"
+  },
+  "rarefied": {
+    "pos": "adjective",
+    "def": "esoteric and refined; remote from the lives of ordinary people"
+  },
+  "hegemony": {
+    "pos": "noun"
+  },
+  "capitulate": {
+    "pos": "verb"
+  },
+  "malfeasance": {
+    "pos": "noun"
+  },
+  "nonplussed": {
+    "pos": "adjective"
+  },
+  "derelict-n": {
+    "pos": "adjective",
+    "ex": "At one time the waterfront factories were busy and productive, but now they stand derelict and will be torn down."
+  },
+  "bereft-adj1": {
+    "def": "deprived of a loved one through death; grieving"
+  },
+  "beg": {
+    "def": "(in 'beg the question') to assume the very point that is in dispute"
+  },
+  "junta": {
+    "def": "a group, usually of military officers, that rules a country after seizing power"
+  },
+  "appurtenant": {
+    "def": "belonging to something as an accessory or supporting part"
+  },
+  "maunder-v2": {
+    "def": "speak in a rambling, aimless way about unimportant matters"
+  },
+  "enamor": {
+    "def": "fill with love or strong attraction (usually 'enamored of')"
+  },
+  "candid": {
+    "def": "frank; honest and direct, holding nothing back"
   }
 }
