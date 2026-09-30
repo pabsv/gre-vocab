@@ -15,11 +15,10 @@ import { Card } from './parts'
 export function FlashTask({ task }: { task: Task }) {
   const entry = getEntry(task.id)
   const submit = useStore((s) => s.submit)
-  const autoSpeak = useStore((s) => s.settings.autoSpeak)
   const elapsed = useElapsed()
   const [flipped, setFlipped] = useState(false)
 
-  // Pronounce on arrival, then again on flip. Settings are read at arrival only,
+  // Pronounce on arrival only. Settings are read at arrival,
   // so toggling auto pronounce mid card does not replay the word.
   useEffect(() => {
     if (useStore.getState().settings.autoSpeak) speak(entry.word)
@@ -28,7 +27,6 @@ export function FlashTask({ task }: { task: Task }) {
   const flip = () => {
     if (flipped) return
     setFlipped(true)
-    if (autoSpeak) speak(entry.word)
   }
   const rate = (knew: boolean) => {
     if (!flipped) return

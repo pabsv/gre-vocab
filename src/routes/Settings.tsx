@@ -81,7 +81,7 @@ export function SettingsRoute() {
             ]}
           />
         </Row>
-        <Row label="Auto pronounce" detail="Speak a new word when it appears and again when it is flipped. N pronounces any time.">
+        <Row label="Auto pronounce" detail="Speak a new word when it appears. N pronounces any time.">
           <Toggle checked={settings.autoSpeak} onChange={(v) => set({ autoSpeak: v })} />
         </Row>
         <Row label="Target recall" detail="Higher means more reviews and firmer memory. 90% is the sweet spot for most learners.">
