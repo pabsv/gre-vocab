@@ -11,7 +11,6 @@ import {
   type EngineCtx,
   type Session,
   type SessionType,
-  type Task,
 } from '../core/engine'
 import { makeScheduler } from '../core/fsrs'
 import { buildOrder } from '../core/order'
@@ -21,13 +20,6 @@ import { DEFAULT_SETTINGS, type OrderMode, type Progress, type Settings, type St
 import * as repo from '../db/repo'
 import { now } from '../lib/clock'
 import { applyTheme } from '../lib/theme'
-
-export interface Feedback {
-  task: Task
-  correct: boolean
-  /** MCQ: the option picked. */
-  picked?: string
-}
 
 const schedulers = new Map<number, FSRS>()
 export function schedulerFor(retention: number): FSRS {
@@ -70,7 +62,6 @@ interface State {
   meta: Map<string, unknown>
   settings: Settings
   session: Session | null
-  feedback: Feedback | null
   error: string | null
 
   init: () => Promise<void>
@@ -79,8 +70,7 @@ interface State {
   plan: (newCount?: number) => DailyPlan
   startDaily: (newCount?: number) => void
   startList: (type: Exclude<SessionType, 'daily'>, ids: string[]) => void
-  submit: (answer: Answer, extra?: Omit<Feedback, 'task' | 'correct'>) => void
-  proceed: () => void
+  submit: (answer: Answer) => void
   undo: () => void
   continueCheckpoint: () => void
   endSession: () => void
@@ -114,7 +104,6 @@ export const useStore = create<State>()((set, get) => {
     meta: new Map(),
     settings: DEFAULT_SETTINGS,
     session: null,
-    feedback: null,
     error: null,
 
     init: async () => {
@@ -160,26 +149,25 @@ export const useStore = create<State>()((set, get) => {
         createDailySession({ day, now: t, dueIds: plan.dueIds, newIds: plan.newIds, carryIds: plan.carryIds, windowSize: st.settings.windowSize }),
         st.ctx(),
       )
-      set({ session: s, feedback: null })
+      set({ session: s })
       repo.saveSession(s).catch(fail)
     },
 
     startList: (type, ids) => {
       const t = now()
       const s = nextTask(createListSession(type, ids, studyDay(t), t), get().ctx())
-      set({ session: s, feedback: null })
+      set({ session: s })
       repo.saveSession(s).catch(fail)
     },
 
-    submit: (answer, extra) => {
+    submit: (answer) => {
       const { session, settings } = get()
       const task = session?.cur
       if (!session || !task) return
       const ctx = get().ctx()
       const { session: applied, event } = applyAnswer(session, answer, ctx)
       const next = nextTask(applied, ctx)
-      const showFeedback = task.mode !== 'flash' && task.mode !== 'explain'
-      set({ session: next, feedback: showFeedback ? { task, correct: event.ok === 1, ...extra } : null })
+      set({ session: next })
       repo
         .recordAnswer(event, next, schedulerFor(settings.retention))
         .then((p) => {
@@ -189,14 +177,12 @@ export const useStore = create<State>()((set, get) => {
         .catch(fail)
     },
 
-    proceed: () => set({ feedback: null }),
-
     undo: () => {
       const { session, settings } = get()
       if (!session) return
       const r = undoLast(session)
       if (!r) return
-      set({ session: r.session, feedback: null })
+      set({ session: r.session })
       repo
         .voidEvent(r.eventId, r.session, schedulerFor(settings.retention))
         .then((p) => {
@@ -215,7 +201,7 @@ export const useStore = create<State>()((set, get) => {
     },
 
     endSession: () => {
-      set({ session: null, feedback: null })
+      set({ session: null })
       repo.saveSession(null).catch(fail)
     },
 

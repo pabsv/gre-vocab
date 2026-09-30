@@ -19,7 +19,6 @@ import { McqTask } from './session/McqTask'
 
 export function SessionRoute() {
   const session = useStore((s) => s.session)
-  const feedback = useStore((s) => s.feedback)
   const undo = useStore((s) => s.undo)
   const autoSpeak = useStore((s) => s.settings.autoSpeak)
   const updateSettings = useStore((s) => s.updateSettings)
@@ -35,7 +34,7 @@ export function SessionRoute() {
   useWakeLock(!!session)
 
   const lock = useSessionLock(!!session)
-  const task = feedback?.task ?? session?.cur ?? null
+  const task = session?.cur ?? null
   const toggleSpeak = () => {
     if (autoSpeak && canSpeak()) speechSynthesis.cancel()
     void updateSettings({ autoSpeak: !autoSpeak })
@@ -68,10 +67,9 @@ export function SessionRoute() {
   else if (session.phase === 'checkpoint') body = <Checkpoint />
   else if (session.phase === 'done') body = <Done session={session} />
   else if (task) {
-    const fb = feedback && feedback.task.seq === task.seq ? feedback : null
     if (task.mode === 'flash') body = <FlashTask key={task.seq} task={task} />
     else if (task.mode === 'explain') body = <ExplainTask key={task.seq} task={task} />
-    else body = <McqTask key={task.seq} task={task} feedback={fb} />
+    else body = <McqTask key={task.seq} task={task} />
   }
 
   return (

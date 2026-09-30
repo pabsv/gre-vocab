@@ -1,47 +1,37 @@
 import { Check, Eye, EyeOff, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Task } from '../../core/engine'
 import { getEntry, type Entry } from '../../data/words'
 import { useHotkeys } from '../../lib/hotkeys'
 import { useElapsed } from '../../lib/useElapsed'
-import { useStore, type Feedback } from '../../state/store'
+import { useStore } from '../../state/store'
 import { Button } from '../../ui/Button'
 import { Example } from '../../ui/Example'
 import { Headword } from '../../ui/Headword'
 import { Kbd } from '../../ui/Kbd'
 import { Card } from './parts'
 
-export function McqTask({ task, feedback }: { task: Task; feedback: Feedback | null }) {
+/**
+ * Picking an option shows right or wrong at once but commits nothing: the pick can change freely
+ * (switch off a lucky guess, fix a misclick) and only the option picked when Space is pressed is recorded.
+ * Meanings can be peeked at any time without a penalty.
+ */
+export function McqTask({ task }: { task: Task }) {
   const entry = getEntry(task.id)
   const options = (task.options ?? []).map(getEntry)
   const submit = useStore((s) => s.submit)
-  const proceed = useStore((s) => s.proceed)
   const undo = useStore((s) => s.undo)
   const elapsed = useElapsed()
-  const answered = feedback && feedback.task.seq === task.seq ? feedback : null
   const byWord = task.mode !== 'mcq-w2d'
+  const [picked, setPicked] = useState<string | null>(null)
   /** Options whose meaning is shown. */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(() => new Set())
-  /** Set once the learner looks at meanings: a correct answer then waits for Continue. */
-  const [held, setHeld] = useState(false)
-  /** Looked at a meaning before answering: the answer then counts as not known. */
-  const [peeked, setPeeked] = useState(false)
-  // Going back (undo) reopens this same card unanswered: start it clean.
-  const [seen, setSeen] = useState(answered)
-  if (seen !== answered) {
-    setSeen(answered)
-    if (!answered) {
-      setRevealed(new Set())
-      setHeld(false)
-      setPeeked(false)
-    }
-  }
+  /** Time to the first pick: how fast the word came to mind, not how long the review took. */
+  const firstMs = useRef<number | null>(null)
 
   const reveal = (k: number) => {
     const opt = options[k]
     if (!opt) return
-    if (!answered) setPeeked(true)
-    setHeld(true)
     setRevealed((prev) => {
       const next = new Set(prev)
       if (!next.delete(opt.id)) next.add(opt.id)
@@ -49,35 +39,34 @@ export function McqTask({ task, feedback }: { task: Task; feedback: Feedback | n
     })
   }
 
-  // Before answering a digit picks; afterwards it shows that option's meaning (Shift+digit works any time).
-  const press = (k: number) => (answered ? reveal(k) : pick(k))
-
   const pick = (k: number) => {
     const opt = options[k]
-    if (answered || !opt) return
-    const right = opt.id === entry.id
-    submit({ correct: right && !peeked, confusedWith: right ? undefined : opt.id, answer: opt.id, ms: elapsed() }, { picked: opt.id })
+    if (!opt) return
+    firstMs.current ??= elapsed()
+    setPicked(opt.id)
   }
 
-  useEffect(() => {
-    if (!answered?.correct || held) return
-    const t = setTimeout(proceed, 800)
-    return () => clearTimeout(t)
-  }, [answered, held, proceed])
+  const commit = () => {
+    if (!picked) return
+    const right = picked === entry.id
+    submit({ correct: right, confusedWith: right ? undefined : picked, answer: picked, ms: firstMs.current ?? elapsed() })
+  }
 
   useHotkeys({
-    Digit1: () => press(0),
-    Digit2: () => press(1),
-    Digit3: () => press(2),
-    Digit4: () => press(3),
+    Digit1: () => pick(0),
+    Digit2: () => pick(1),
+    Digit3: () => pick(2),
+    Digit4: () => pick(3),
     'Shift+Digit1': () => reveal(0),
     'Shift+Digit2': () => reveal(1),
     'Shift+Digit3': () => reveal(2),
     'Shift+Digit4': () => reveal(3),
     ArrowLeft: undo,
-    Enter: () => answered && proceed(),
-    Space: () => answered && proceed(),
+    Enter: commit,
+    Space: commit,
   })
+
+  const wrong = picked !== null && picked !== entry.id
 
   return (
     <Card>
@@ -99,21 +88,18 @@ export function McqTask({ task, feedback }: { task: Task; feedback: Feedback | n
             target={entry}
             byWord={byWord}
             explainTarget={task.mode === 'mcq-blank'}
-            answered={answered}
+            picked={picked}
             revealed={revealed.has(o.id)}
             onPick={() => pick(k)}
             onReveal={() => reveal(k)}
-            onHold={() => answered && setHeld(true)}
           />
         ))}
       </ol>
 
-      {peeked && <p className="anim-fade mt-4 text-sm text-ink-3">You peeked, so this one counts as not known yet.</p>}
-
-      {answered && (!answered.correct || held) && (
+      {picked && (
         <div className="anim-fade mt-5 flex flex-col gap-4">
-          {!answered.correct && task.mode !== 'mcq-blank' && entry.ex && <Example entry={entry} className="leading-relaxed text-ink-2" />}
-          <Button variant="primary" keys={['Space']} onClick={proceed} className="self-start">
+          {wrong && task.mode !== 'mcq-blank' && entry.ex && <Example entry={entry} className="leading-relaxed text-ink-2" />}
+          <Button variant="primary" keys={['Space']} onClick={commit} className="self-start">
             Continue
           </Button>
         </div>
@@ -128,11 +114,10 @@ function Option({
   target,
   byWord,
   explainTarget,
-  answered,
+  picked,
   revealed,
   onPick,
   onReveal,
-  onHold,
 }: {
   n: number
   option: Entry
@@ -140,33 +125,32 @@ function Option({
   byWord: boolean
   /** After a miss, also show the target's meaning (the prompt did not). */
   explainTarget: boolean
-  answered: Feedback | null
+  picked: string | null
   revealed: boolean
   onPick: () => void
   onReveal: () => void
-  /** Pointer is heading for the reveal button after a right answer: stop the auto advance. */
-  onHold: () => void
 }) {
   const isTarget = option.id === target.id
-  const isPicked = answered?.picked === option.id
+  const isPicked = picked === option.id
+  const wrong = picked !== null && picked !== target.id
   let tone = 'border-line bg-surface hover:border-line-strong hover:bg-surface-2'
-  if (answered) {
-    if (isTarget) tone = 'border-good/60 bg-good-soft anim-pop'
+  if (picked) {
+    if (isTarget) tone = `border-good/60 bg-good-soft ${isPicked ? 'anim-pop' : ''}`
     else if (isPicked) tone = 'border-bad/60 bg-bad-soft anim-shake'
-    else tone = revealed ? 'border-line bg-surface' : 'border-line bg-surface opacity-55'
+    else tone = `border-line bg-surface hover:border-line-strong ${revealed ? '' : 'opacity-55'}`
   }
-  const explained = answered && !answered.correct && (isPicked || (isTarget && explainTarget))
+  const explained = wrong && (isPicked || (isTarget && explainTarget))
   const label = byWord ? option.word : 'this option'
   return (
     <li className="relative">
       <button
         type="button"
         onClick={onPick}
-        disabled={!!answered}
+        aria-pressed={isPicked}
         className={`group flex w-full items-start gap-4 rounded-2xl border py-3 pl-4 text-left transition-colors pr-14 ${tone}`}
       >
         <span className="mt-0.5 flex w-6 shrink-0 justify-center">
-          {answered && isTarget ? <Check size={18} className="text-good" /> : answered && isPicked ? <X size={18} className="text-bad" /> : <Kbd>{n}</Kbd>}
+          {picked && isTarget ? <Check size={18} className="text-good" /> : isPicked ? <X size={18} className="text-bad" /> : <Kbd>{n}</Kbd>}
         </span>
         <span className="min-w-0 flex-1">
           {byWord ? (
@@ -182,7 +166,6 @@ function Option({
       <button
         type="button"
         onClick={onReveal}
-        onPointerEnter={onHold}
         aria-pressed={revealed}
         aria-label={revealed ? `Hide meaning of ${label}` : `Show meaning of ${label}`}
         title={`${revealed ? 'Hide' : 'Show'} meaning (Shift+${n})`}
