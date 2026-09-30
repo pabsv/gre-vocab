@@ -1,3 +1,4 @@
+import { inflectionSuffix } from '../core/text'
 import type { Entry, ExampleSentence, ExampleSrc } from '../data/words'
 import { useStore } from '../state/store'
 
@@ -34,7 +35,10 @@ export function Example({
     <p className={`font-display italic ${className}`}>
       {ex.t.slice(0, a)}
       {blank ? (
-        <span className="blank" aria-label="blank" />
+        <>
+          <span className="blank" aria-label="blank" />
+          {inflectionSuffix(entry.word, ex.t.slice(a, b))}
+        </>
       ) : (
         <span className="marker font-medium not-italic text-ink">{ex.t.slice(a, b)}</span>
       )}
