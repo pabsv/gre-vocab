@@ -57,11 +57,30 @@ def load_notes(path):
     return [flds.split('\x1f') for (flds,) in con.execute('select flds from notes order by id')]
 
 
+# UTF-8 text that was read as Windows-1252 somewhere upstream (naÃ¯ve, faÃ§ade, clichÃ©).
+MOJIBAKE = re.compile(r'[ÂÃ][\x80-\xbfŒ-™]')
+ABBREV_END = re.compile(r'\b(usu|esp)\.$')
+ABBREV_FULL = {'usu': 'usually', 'esp': 'especially'}
+
+
+def fix_mojibake(s):
+    # the ¯ of naïve arrived as a space and a combining macron
+    s = s.replace('Ã ̄', 'ï').replace('Â\xa0', ' ')
+
+    def repair(m):
+        try:
+            return m.group(0).encode('cp1252').decode('utf-8')
+        except UnicodeError:
+            return m.group(0)
+
+    return MOJIBAKE.sub(repair, s).replace('Â', '')
+
+
 def clean(s):
-    s = html.unescape(s or '')
+    s = fix_mojibake(html.unescape(s or ''))
     s = s.replace('\xa0', ' ').replace('�', '')
     s = re.sub(r'<[^>]+>', '', s)
-    s = re.sub(r'(\w)"s\b', r"\1's", s)  # &quot;s used where an apostrophe was meant
+    s = re.sub(r'(\w)"(s|t|re|ll|ve|d|m)\b', r"\1'\2", s)  # &quot; used where an apostrophe was meant
     return re.sub(r'\s+', ' ', s).strip()
 
 
@@ -185,6 +204,13 @@ def main():
             ex, note = OTHER_DEFS.sub('', ex).strip(), NOTE_TEXT
         if SECTION_MARKER.search(ex):
             ex = SECTION_MARKER.sub('', ex).strip()
+        # "noticed (usu." + "refers to an amount). There is...": the deck split the definition at an abbreviation.
+        a = ABBREV_END.search(defn)
+        tail = re.match(r'^([a-z][^.]*?)\.\s+(.+)$', ex) if a else None
+        if tail:
+            defn = defn[:a.start()] + ABBREV_FULL[a.group(1)] + ' ' + tail.group(1)
+            ex = tail.group(2)
+            report['rejoined definition split at an abbreviation'].append(f'{word_raw}: {defn}')
         g = GLUE.match(defn)
         if g and find_span(g.group(2), head):
             defn = g.group(1)
@@ -232,6 +258,24 @@ def main():
             continue
         by_id[key].update(patch)
         report['overrides applied'].append(f'{key}: {", ".join(patch)}')
+
+    # Spelling fixes in the deck's own text: whole words only, a leading capital kept.
+    typos = overrides.get('_typos', {})
+    if typos:
+        alts = '|'.join(re.escape(k) for k in sorted(typos, key=len, reverse=True))
+        pattern = re.compile(r"\b(" + alts + r")(?![\w'])", re.I)
+
+        def fix(m):
+            new = typos[m.group(1).lower()]
+            return new[0].upper() + new[1:] if m.group(1)[0].isupper() else new
+
+        for r in raw:
+            for f in ('def', 'ex'):
+                if r.get(f):
+                    found = sorted({m.group(1) for m in pattern.finditer(r[f])})
+                    if found:
+                        r[f] = pattern.sub(fix, r[f])
+                        report['spelling fixed'].append(f"{r['id']}: {', '.join(found)}")
 
     for r in raw:
         assert r['pos'] in POS_VALUES, (r['id'], r['pos'])
