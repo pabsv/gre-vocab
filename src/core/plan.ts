@@ -17,6 +17,8 @@ export interface DailyPlan {
   /** New words already started today. */
   startedToday: number
   newTarget: number
+  /** Fresh words still owed to today's target, ignoring the budget. */
+  targetLeft: number
   estMinutes: number
 }
 
@@ -54,7 +56,8 @@ export function buildPlan(args: {
 
   const seconds = settings.budgetMin * 60 - dueIds.length * SEC_PER_REVIEW - carryIds.length * SEC_PER_NEW
   const fit = Math.max(0, Math.floor(seconds / SEC_PER_NEW))
-  const allowed = newCount ?? Math.max(0, Math.min(settings.newPerDay - startedToday - carriedIn, fit))
+  const targetLeft = Math.max(0, settings.newPerDay - startedToday - carriedIn)
+  const allowed = newCount ?? Math.min(targetLeft, fit)
 
   const newIds: string[] = []
   const fresh = (id: string) => !suspended.has(id) && !progress.get(id)?.firstDay && !progress.get(id)?.card
@@ -73,5 +76,5 @@ export function buildPlan(args: {
   }
 
   const estMinutes = Math.round((dueIds.length * SEC_PER_REVIEW + (carryIds.length + newIds.length) * SEC_PER_NEW) / 60)
-  return { day, dueIds, carryIds, newIds, startedToday, newTarget: settings.newPerDay, estMinutes }
+  return { day, dueIds, carryIds, newIds, startedToday, newTarget: settings.newPerDay, targetLeft, estMinutes }
 }

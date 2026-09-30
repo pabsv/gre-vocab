@@ -36,10 +36,14 @@ export function Today() {
 
   const resumable = !!session && session.day === today && session.phase !== 'done'
   const fresh = counts.new - plan.carryIds.length
-  const suggested = plan.newIds.length || (plan.dueIds.length + plan.carryIds.length === 0 ? Math.min(10, fresh) : 0)
+  // Default to the daily target from Settings; the stepper moves the shown total in round steps of 5.
   const [picked, setPicked] = useState<number | null>(null)
-  const newCount = Math.min(picked ?? suggested, Math.max(0, fresh))
-  const step = (d: number) => setPicked(Math.max(0, Math.min(Math.max(0, fresh), (picked ?? suggested) + d)))
+  const newCount = Math.min(picked ?? plan.targetLeft, Math.max(0, fresh))
+  const step = (d: number) => {
+    const total = newCount + plan.carryIds.length
+    const next = d > 0 ? Math.floor(total / 5) * 5 + 5 : Math.ceil(total / 5) * 5 - 5
+    setPicked(Math.max(0, Math.min(Math.max(0, fresh), next - plan.carryIds.length)))
+  }
   const work = plan.dueIds.length + newCount + plan.carryIds.length
   const estMinutes = Math.round((plan.dueIds.length * SEC_PER_REVIEW + (plan.carryIds.length + newCount) * SEC_PER_NEW) / 60)
   const todayAct = activity.get(today)

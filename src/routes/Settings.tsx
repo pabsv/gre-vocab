@@ -52,7 +52,7 @@ export function SettingsRoute() {
         <Row label="New words per day" detail={`Default on Today, where each session can change it. Roughly ${perDayMinutes} minutes a day.`}>
           <Range value={settings.newPerDay} min={10} max={60} step={5} onChange={(v) => set({ newPerDay: v })} />
         </Row>
-        <Row label="Daily time budget" detail="When reviews pile up, fewer new words are added so the day fits this budget.">
+        <Row label="Daily time budget" detail="Today starts at your daily target; this budget only applies when no session size is picked.">
           <Range value={settings.budgetMin} min={20} max={150} step={10} suffix=" min" onChange={(v) => set({ budgetMin: v })} />
         </Row>
         <Row label="Words in play at once" detail="New words are juggled in a small window; a recap appears after this many.">
