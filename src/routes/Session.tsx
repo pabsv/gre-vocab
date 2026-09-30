@@ -37,6 +37,7 @@ export function SessionRoute() {
     {
       Escape: () => (sheet ? setSheet(false) : navigate('/')),
       'Mod+KeyZ': () => !lock.blocked && undo(),
+      Backspace: () => !lock.blocked && undo(),
       KeyP: () => task && speak(getEntry(task.id).word),
       KeyM: toggleSpeak,
       'Shift+Slash': () => setSheet((v) => !v),
@@ -155,8 +156,8 @@ function SessionHeader({
           onClick={onUndo}
           disabled={!session.undo.length}
           className="rounded-xl p-2 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30"
-          aria-label="Undo last answer"
-          title="Undo last answer (Ctrl+Z)"
+          aria-label="Back to the last card"
+          title="Back to the last card (Backspace)"
         >
           <Undo2 size={19} />
         </button>
